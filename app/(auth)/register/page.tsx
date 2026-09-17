@@ -19,6 +19,20 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { registerSchema, type RegisterInput } from "@/lib/validation/auth";
 
+function getSignupErrorMessage(message: string, status?: number) {
+  const normalized = message.toLowerCase();
+
+  if (status === 429 || normalized.includes("rate limit")) {
+    return "Too many confirmation emails were requested. Please wait a while before trying again, or log in if your account is already confirmed.";
+  }
+
+  if (normalized.includes("already registered") || normalized.includes("already exists")) {
+    return "An account with this email may already exist. Try logging in instead.";
+  }
+
+  return "We couldn't create your account right now. Please try again shortly.";
+}
+
 export default function RegisterPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -46,7 +60,7 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setFormError(error.message);
+      setFormError(getSignupErrorMessage(error.message, error.status));
       return;
     }
 
@@ -62,6 +76,14 @@ export default function RegisterPage() {
             We&apos;ve sent a confirmation link to finish setting up your account.
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Already confirmed your account?{" "}
+            <Link href="/login" className="font-medium text-primary hover:underline">
+              Log in
+            </Link>
+          </p>
+        </CardContent>
       </Card>
     );
   }
