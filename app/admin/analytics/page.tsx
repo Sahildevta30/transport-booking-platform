@@ -1,19 +1,5 @@
-import type { Metadata } from "next";
-import { BarChart3 } from "lucide-react";
-
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
-
-export const metadata: Metadata = {
-  title: "Analytics",
-};
-
-export default function Page() {
-  return (
-    <PagePlaceholder
-      icon={BarChart3}
-      title="Analytics"
-      description="Business insights across bookings, revenue, and vehicle utilization."
-      note="No fabricated analytics — real dashboards ship once analytics_events data exists."
-    />
-  );
-}
+import type {Metadata} from "next";
+import {redirect} from "next/navigation";
+import {createClient} from "@/lib/supabase/server";
+export const metadata:Metadata={title:"Analytics"};
+export default async function AnalyticsPage(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect("/login?next=/admin/analytics");const {data:profile}=await supabase.from("profiles").select("account_type").eq("id",user.id).single();if(profile?.account_type!=="ADMIN")redirect("/customer/dashboard");const {data,error}=await supabase.rpc("analytics_summary",{p_days:30});const rows=data??[];const total=rows.reduce((sum,r)=>sum+Number(r.event_count),0);return <div className="space-y-6"><div><h1 className="text-3xl font-semibold">Analytics</h1><p className="mt-2 text-muted-foreground">Real product events from the last 30 days.</p></div><div className="grid gap-4 sm:grid-cols-2"><div className="rounded-xl border bg-card p-5"><p className="text-sm text-muted-foreground">Recorded events</p><p className="mt-2 text-3xl font-semibold">{total}</p></div><div className="rounded-xl border bg-card p-5"><p className="text-sm text-muted-foreground">Event categories active</p><p className="mt-2 text-3xl font-semibold">{rows.length}</p></div></div>{error?<p className="rounded-xl border p-5">Analytics could not be loaded.</p>:!rows.length?<p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No analytics events have been recorded in this period yet.</p>:<div className="overflow-x-auto rounded-xl border"><table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="p-4">Event</th><th className="p-4">Events</th><th className="p-4">Unique users</th></tr></thead><tbody>{rows.map(r=><tr key={r.event_type} className="border-b last:border-0"><td className="p-4 font-medium">{r.event_type.replaceAll("_"," ")}</td><td className="p-4">{r.event_count}</td><td className="p-4">{r.unique_users}</td></tr>)}</tbody></table></div>}</div>}
