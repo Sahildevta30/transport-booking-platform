@@ -1,5 +1,3 @@
-"use client";
-
 import type { LucideIcon } from "lucide-react";
 
 interface PagePlaceholderProps {
@@ -12,9 +10,9 @@ interface PagePlaceholderProps {
 
 /**
  * Standard "not yet implemented" shell used across Phase 1 route stubs.
- * This is a client boundary because some server-rendered route stubs pass a
- * Lucide component through the optional icon prop. React Server Components
- * cannot serialize component functions across a server-to-client boundary.
+ * Establishes the empty-state visual language without fabricated content.
+ * Keep this as a Server Component so route stubs may render Lucide icons
+ * without serializing component functions into the client payload.
  */
 export function PagePlaceholder({
   title,
