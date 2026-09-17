@@ -9,30 +9,25 @@ export interface SessionUser {
   accountType: AccountType | null;
 }
 
-/**
- * Reads the authenticated identity from Supabase. Authorization data is kept
- * separate from Auth metadata; until the Phase 2 generated database types are
- * integrated, accountType deliberately remains null rather than trusting
- * client-writable user_metadata.
- *
- * A transient Supabase/configuration error is treated as no verified session
- * so protected layouts can fail closed instead of rendering the global error
- * boundary.
- */
+/** Reads the verified Supabase identity and server-authoritative platform role. */
 export async function getSessionUser(): Promise<SessionUser | null> {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
+    const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return null;
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("account_type")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) return null;
 
     return {
       id: user.id,
       email: user.email ?? null,
-      accountType: null,
+      accountType: profile?.account_type ?? null,
     };
   } catch {
     return null;
