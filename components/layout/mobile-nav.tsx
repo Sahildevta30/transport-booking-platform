@@ -2,28 +2,19 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
-import { Menu, X, type LucideIcon } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 export interface MobileNavLink {
   href: string;
   label: string;
-  icon?: LucideIcon;
 }
 
 /**
- * Accessible mobile navigation disclosure, used wherever a sidebar/nav is
- * hidden below the `md` breakpoint (site header, customer sidebar, admin
- * sidebar). Built from a plain button + conditional panel rather than a
- * dependency (Radix Dialog/Sheet) — this is a simple show/hide, not a
- * modal, and doesn't need focus-trapping or a portal.
- *
- * Accessibility: the trigger button reports its state via
- * `aria-expanded` and `aria-controls`, points at a visible label via
- * `aria-label`, and the panel is only removed from the DOM (not just
- * visually hidden) when closed, so it never confuses screen readers or
- * accepts keyboard focus while closed.
+ * Accessible mobile navigation disclosure. Props intentionally contain only
+ * serializable data because this component is a client boundary and callers
+ * may be Server Components.
  */
 export function MobileNav({ links }: { links: readonly MobileNavLink[] }) {
   const [open, setOpen] = useState(false);
@@ -48,14 +39,13 @@ export function MobileNav({ links }: { links: readonly MobileNavLink[] }) {
           className="absolute inset-x-0 top-16 z-30 border-b border-border bg-background shadow-sm"
         >
           <ul className="flex flex-col gap-1 p-4">
-            {links.map(({ href, label, icon: Icon }) => (
+            {links.map(({ href, label }) => (
               <li key={href}>
                 <Link
                   href={href}
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
-                  {Icon ? <Icon className="h-4 w-4" /> : null}
                   {label}
                 </Link>
               </li>
