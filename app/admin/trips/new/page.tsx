@@ -1,0 +1,21 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/server";
+import { tripSchema } from "@/lib/validation/routes";
+import { TRIP_STATUSES } from "@/types/domain";
+
+export const metadata: Metadata = { title: "Schedule trip" };
+
+export default async function NewTripPage() {
+  const supabase = await createClient();
+  const [{data:organizations},{data:routes},{data:vehicles}] = await Promise.all([supabase.from("organizations").select("id,name").order("name"),supabase.from("routes").select("id,name").order("name"),supabase.from("vehicles").select("id,label,registration_number,status").eq("status","active").order("label")]);
+  async function createTrip(formData:FormData) { "use server"; const parsed=tripSchema.safeParse({organizationId:formData.get("organization_id"),routeId:formData.get("route_id"),vehicleId:formData.get("vehicle_id"),departureTime:formData.get("departure_time"),arrivalTime:formData.get("arrival_time"),status:formData.get("status")}); if(!parsed.success) redirect("/admin/trips/new?error=invalid"); const client=await createClient(); const v=parsed.data; const departure=new Date(v.departureTime).toISOString(); const arrival=new Date(v.arrivalTime).toISOString(); const {data:conflicts}=await client.from("trips").select("id").eq("vehicle_id",v.vehicleId).lt("departure_time",arrival).gt("arrival_time",departure).neq("status","cancelled").limit(1); if(conflicts?.length) redirect("/admin/trips/new?error=vehicle-conflict"); const {error}=await client.from("trips").insert({organization_id:v.organizationId,route_id:v.routeId,vehicle_id:v.vehicleId,departure_time:departure,arrival_time:arrival,status:v.status}); if(error) redirect("/admin/trips/new?error=save"); redirect("/admin/trips"); }
+  const ready=Boolean(organizations?.length&&routes?.length&&vehicles?.length);
+  return <div className="mx-auto max-w-2xl space-y-6"><div><Link href="/admin/trips" className="text-sm text-muted-foreground hover:text-foreground">← Back to trips</Link><h1 className="mt-3 text-3xl font-semibold tracking-tight">Schedule trip</h1><p className="mt-2 text-sm text-muted-foreground">Assign an active vehicle to a route for a specific operating window.</p></div>{!ready?<div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">An organization, route and active vehicle are required before scheduling.</div>:null}<form action={createTrip} className="space-y-5 rounded-xl border bg-card p-6"><Field label="Organization"><Select name="organization_id" options={organizations?.map(x=>[x.id,x.name])??[]} /></Field><Field label="Route"><Select name="route_id" options={routes?.map(x=>[x.id,x.name])??[]} /></Field><Field label="Vehicle"><Select name="vehicle_id" options={vehicles?.map(x=>[x.id,`${x.label} — ${x.registration_number}`])??[]} /></Field><div className="grid gap-5 sm:grid-cols-2"><Field label="Departure"><Input name="departure_time" type="datetime-local" required /></Field><Field label="Arrival"><Input name="arrival_time" type="datetime-local" required /></Field></div><Field label="Initial status"><select name="status" defaultValue="scheduled" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{TRIP_STATUSES.map(s=><option key={s} value={s}>{s.replaceAll("_"," ")}</option>)}</select></Field><div className="flex justify-end gap-3"><Button asChild variant="outline"><Link href="/admin/trips">Cancel</Link></Button><Button type="submit" disabled={!ready}>Schedule trip</Button></div></form></div>;
+}
+function Field({label,children}:{label:string;children:React.ReactNode}) { return <div className="space-y-2"><Label>{label}</Label>{children}</div>; }
+function Select({name,options}:{name:string;options:[string,string][]}) { return <select name={name} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Select</option>{options.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select>; }
