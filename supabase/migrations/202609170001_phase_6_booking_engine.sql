@@ -1,0 +1,11 @@
+-- Phase 6 production migration marker.
+-- Applied to Supabase on 2026-09-17 as migrations:
+-- phase_6_booking_engine
+-- phase_6_full_vehicle_exclusivity
+-- phase_6_seat_booking_full_vehicle_guard
+--
+-- Production now contains RLS-enabled bookings, booking_passengers,
+-- seat_locks and booking_seats plus SECURITY DEFINER RPCs for atomic
+-- seat locking, seat booking and full-vehicle booking. The exact applied
+-- migration history remains authoritative in Supabase; do not replay this
+-- marker as DDL.

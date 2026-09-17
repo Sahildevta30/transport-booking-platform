@@ -1,17 +1,7 @@
 import type { Metadata } from "next";
-import { Ticket } from "lucide-react";
-
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
-
-export const metadata: Metadata = { title: "My Bookings" };
-
-export default function CustomerBookingsPage() {
-  return (
-    <PagePlaceholder
-      icon={Ticket}
-      title="My Bookings"
-      description="Every trip you've booked, its status, and live tracking will show up here."
-      note="Connected to real bookings once the booking engine ships in Phase 2."
-    />
-  );
-}
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
+export const metadata:Metadata={title:"My Bookings"};
+export default async function CustomerBookingsPage(){const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect("/login?next=/customer/bookings");const {data:bookings,error}=await supabase.from("bookings").select("id,trip_id,booking_mode,status,passenger_count,amount,created_at").order("created_at",{ascending:false});return <div className="space-y-6"><div><h1 className="text-3xl font-semibold">My Bookings</h1><p className="mt-2 text-muted-foreground">Your real transport reservations and current status.</p></div>{error?<p className="rounded-lg border p-5 text-sm">Bookings could not be loaded.</p>:null}{!error&&!bookings?.length?<div className="rounded-xl border border-dashed p-10 text-center"><p className="font-medium">No bookings yet</p><Button asChild className="mt-4"><Link href="/search">Search trips</Link></Button></div>:null}<div className="grid gap-4">{bookings?.map(b=><article key={b.id} className="rounded-xl border bg-card p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">Booking {b.id.slice(0,8).toUpperCase()}</p><p className="text-sm text-muted-foreground">{b.booking_mode.replaceAll("_"," ")} · {b.passenger_count} passenger(s) · ₹{Number(b.amount).toFixed(2)}</p><p className="mt-1 text-sm">Status: {b.status}</p></div><Button asChild variant="outline"><Link href={`/customer/bookings/${b.id}`}>View details</Link></Button></div></article>)}</div></div>}
