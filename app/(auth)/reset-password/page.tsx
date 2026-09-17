@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +19,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    const code = searchParams.get("code");
+    const code = new URLSearchParams(window.location.search).get("code");
 
     async function prepareRecovery() {
       if (code) {
@@ -34,7 +33,7 @@ export default function ResetPasswordPage() {
     }
 
     void prepareRecovery();
-  }, [searchParams]);
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
