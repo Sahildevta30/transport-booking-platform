@@ -11,12 +11,8 @@ const CUSTOMER_NAV = [
   { href: "/customer/profile", label: "Profile", icon: User },
 ] as const;
 
-/**
- * Second, explicit authorization check for the customer area.
- * Middleware already blocks unauthenticated visitors; this layout
- * re-confirms server-side before rendering anything customer-specific —
- * defense in depth, never relying on a single checkpoint.
- */
+const CUSTOMER_MOBILE_NAV = CUSTOMER_NAV.map(({ href, label }) => ({ href, label }));
+
 export default async function CustomerLayout({
   children,
 }: {
@@ -31,7 +27,7 @@ export default async function CustomerLayout({
         <Link href="/customer/dashboard" className="font-semibold">
           TransitBook
         </Link>
-        <MobileNav links={CUSTOMER_NAV} />
+        <MobileNav links={CUSTOMER_MOBILE_NAV} />
       </header>
 
       <aside className="hidden w-60 shrink-0 border-r border-border bg-muted/20 md:block">
