@@ -1,43 +1,13 @@
-/**
- * Analytics event abstraction (see docs/architecture/analytics-architecture.md).
- *
- * This defines the *shape* of events, not a working pipeline yet — no
- * events are actually sent anywhere in Phase 1. Wiring this to
- * `analytics_events` (Supabase) or a third-party sink is Phase 2+ work.
- *
- * Hard rule: NEVER put passwords, auth tokens, payment credentials, or any
- * other secret into an event's payload. If you're not sure whether a field
- * is sensitive, leave it out.
- */
+import type {SupabaseClient} from "@supabase/supabase-js";
+import type {Database,Json} from "@/types/database";
 
-export const ANALYTICS_EVENTS = [
-  "search_performed",
-  "route_viewed",
-  "trip_viewed",
-  "vehicle_viewed",
-  "seat_selected",
-  "booking_started",
-  "booking_abandoned",
-  "booking_completed",
-  "booking_cancelled",
-  "recommendation_viewed",
-  "recommendation_clicked",
-] as const;
-export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
+export const ANALYTICS_EVENTS=["search_performed","route_viewed","trip_viewed","vehicle_viewed","seat_selected","booking_started","booking_abandoned","booking_completed","booking_cancelled","recommendation_viewed","recommendation_clicked"] as const;
+export type AnalyticsEvent=(typeof ANALYTICS_EVENTS)[number];
+export interface AnalyticsPayload{event:AnalyticsEvent;properties?:Record<string,Json>;sessionId?:string;}
 
-export interface AnalyticsPayload {
-  event: AnalyticsEvent;
-  properties?: Record<string, string | number | boolean | null>;
-  timestamp?: string;
-}
-
-/**
- * Placeholder track function. Currently a no-op (safe to call anywhere)
- * so call sites can be wired into the UI now and connected to a real
- * sink later without touching every call site again.
- */
-export function trackEvent(payload: AnalyticsPayload): void {
-  if (process.env.NODE_ENV === "development") {
-    console.debug("[analytics:noop]", payload);
-  }
+/** Records only allow-listed product events. Never include secrets, credentials, payment data or sensitive free text in properties. */
+export async function trackEvent(supabase:SupabaseClient<Database>,payload:AnalyticsPayload):Promise<void>{
+ const {data:{user}}=await supabase.auth.getUser();
+ const {error}=await supabase.from("analytics_events").insert({event_type:payload.event,user_id:user?.id??null,session_id:payload.sessionId??null,properties:payload.properties??{}});
+ if(error&&process.env.NODE_ENV==="development") console.debug("[analytics:error]",payload.event,error.code);
 }
