@@ -14,7 +14,7 @@ import type { AccountType, Role } from "@/types/domain";
  * always the real gate — never rely on a client-side check alone.
  */
 
-const ADMIN_AREA_ACCOUNT_TYPES: readonly AccountType[] = ["ADMIN", "STAFF"];
+const ADMIN_AREA_ACCOUNT_TYPES: readonly AccountType[] = ["ADMIN", "STAFF"];\n\nexport function canAccessSupervisionArea(accountType: AccountType | null): boolean {\n  return accountType === "SUPER_ADMIN";\n}
 
 export function canAccessAdminArea(accountType: AccountType | null): boolean {
   if (!accountType) return false;
