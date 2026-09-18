@@ -38,7 +38,7 @@ returns table(
   registration_number text, vehicle_status public.vehicle_status, trip_id uuid,
   trip_status public.trip_status, departure_at timestamptz, arrival_at timestamptz,
   booking_id uuid, customer_id uuid, booking_status public.booking_status,
-  booking_amount numeric, base_price numeric, discount_amount numeric
+  booking_amount numeric, base_price numeric, discount_amount numeric,\n  origin_name text, destination_name text
 )
 language sql stable security definer set search_path=public,pg_temp
 as $$
