@@ -118,3 +118,37 @@ for update to authenticated using (exists (
   select 1 from public.vehicles v join public.organization_memberships om on om.organization_id=v.organization_id
   where v.id=trips.vehicle_id and om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
 ));
+
+
+create table if not exists public.partner_terms_acceptances (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  organization_name text not null check (char_length(trim(organization_name)) between 2 and 160),
+  terms_version text not null,
+  accepted_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  unique(user_id,terms_version)
+);
+alter table public.partner_terms_acceptances enable row level security;
+create policy "users can read own partner acceptance" on public.partner_terms_acceptances
+for select to authenticated using (user_id=auth.uid());
+create policy "users can accept partner terms" on public.partner_terms_acceptances
+for insert to authenticated with check (user_id=auth.uid());
+
+create or replace function public.activate_partner(p_organization_name text,p_terms_version text)
+returns uuid language plpgsql security definer set search_path=public,pg_temp
+as $$
+declare v_org uuid;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if length(trim(p_organization_name)) < 2 then raise exception 'Organization name required'; end if;
+  if coalesce(trim(p_terms_version),'') <> '2026-09-18' then raise exception 'Current terms must be accepted'; end if;
+  if exists(select 1 from public.organization_memberships where user_id=auth.uid()) then raise exception 'Partner membership already exists'; end if;
+  insert into public.partner_terms_acceptances(user_id,organization_name,terms_version) values(auth.uid(),trim(p_organization_name),p_terms_version);
+  insert into public.organizations(name) values(trim(p_organization_name)) returning id into v_org;
+  insert into public.organization_memberships(organization_id,user_id,role) values(v_org,auth.uid(),'OWNER');
+  update public.profiles set account_type='ADMIN',updated_at=now() where id=auth.uid() and account_type='CUSTOMER';
+  return v_org;
+end $$;
+revoke execute on function public.activate_partner(text,text) from public,anon;
+grant execute on function public.activate_partner(text,text) to authenticated;
