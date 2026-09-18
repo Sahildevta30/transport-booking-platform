@@ -2,11 +2,18 @@ import { redirect } from "next/navigation";
 import { Eye, ShieldCheck } from "lucide-react";
 import { getSessionUser } from "@/lib/auth/session";
 import { canAccessSupervisionArea } from "@/lib/auth/roles";
+import { AREA_LOGIN_PATH, dashboardForAccountType } from "@/lib/auth/redirects";
 
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
+  // Supervision is the most restricted area: unauthenticated visitors go
+  // to the dedicated super-admin login (not the customer one), and a
+  // signed-in but unauthorized account is quietly returned to its own
+  // dashboard — never told that it merely lacked the role.
   const user = await getSessionUser();
-  if (!user) redirect("/login?next=/super-admin");
-  if (!canAccessSupervisionArea(user.accountType)) redirect("/");
+  if (!user) redirect(`${AREA_LOGIN_PATH["super-admin"]}?next=/super-admin`);
+  if (!canAccessSupervisionArea(user.accountType)) {
+    redirect(dashboardForAccountType(user.accountType));
+  }
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40">
       <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur-xl">

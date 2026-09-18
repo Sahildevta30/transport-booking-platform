@@ -13,10 +13,29 @@ describe("routeSchema", () => {
 });
 
 describe("tripSchema", () => {
+  // A trip carries no organizationId: ownership is derived server-side from
+  // the vehicle's and route's organization (see app/admin/trips/new), so the
+  // client can never assert which organization a trip belongs to.
+  const validTrip = { routeId: id(2), vehicleId: id(3), departureTime: "2026-09-20T08:00", arrivalTime: "2026-09-20T12:00", basePrice: 1200, status: "scheduled" };
+
   it("accepts chronological trip times", () => {
-    expect(tripSchema.safeParse({ organizationId: id(1), routeId: id(2), vehicleId: id(3), departureTime: "2026-09-20T08:00", arrivalTime: "2026-09-20T12:00", status: "scheduled" }).success).toBe(true);
+    expect(tripSchema.safeParse(validTrip).success).toBe(true);
   });
   it("rejects arrival before departure", () => {
-    expect(tripSchema.safeParse({ organizationId: id(1), routeId: id(2), vehicleId: id(3), departureTime: "2026-09-20T12:00", arrivalTime: "2026-09-20T08:00", status: "scheduled" }).success).toBe(false);
+    expect(tripSchema.safeParse({ ...validTrip, departureTime: "2026-09-20T12:00", arrivalTime: "2026-09-20T08:00" }).success).toBe(false);
+  });
+  it("requires basePrice, because booking and payment both price off it", () => {
+    // trips.base_price is NOT NULL and create_seat_booking raises without it.
+    const withoutPrice: Record<string, unknown> = { ...validTrip };
+    delete withoutPrice.basePrice;
+    expect(tripSchema.safeParse(withoutPrice).success).toBe(false);
+  });
+  it("rejects a negative fare", () => {
+    expect(tripSchema.safeParse({ ...validTrip, basePrice: -1 }).success).toBe(false);
+  });
+  it("coerces a form-submitted string fare", () => {
+    const parsed = tripSchema.safeParse({ ...validTrip, basePrice: "1200" });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.basePrice).toBe(1200);
   });
 });

@@ -10,6 +10,14 @@ const FOOTER_SECTIONS = [
     ],
   },
   {
+    title: "Partners",
+    links: [
+      { href: "/partner", label: "Partner With Us" },
+      { href: "/partner/login", label: "Partner Login" },
+      { href: "/partner/apply", label: "List Your Fleet" },
+    ],
+  },
+  {
     title: "Legal",
     links: [
       { href: "/terms", label: "Terms" },
@@ -22,7 +30,7 @@ const FOOTER_SECTIONS = [
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-border bg-muted/40">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-4 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-5 lg:px-8">
         <div className="md:col-span-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">
             TB

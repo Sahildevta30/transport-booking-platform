@@ -9,13 +9,17 @@ const NAV_LINKS = [
   { href: "/routes", label: "Routes" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
-  { href: "/partner/apply", label: "List your fleet" },
+  { href: "/partner", label: "Partner With Us" },
 ] as const;
 
 /**
  * Top navigation for the public customer-facing site.
- * Auth state (login vs. dashboard link) will be wired in once
- * Supabase Auth session reading lands in a later phase.
+ *
+ * Every role entry point a visitor could need is reachable from here
+ * without typing a URL: "Log in" for customers, "Partner With Us" for
+ * operators (which itself offers partner login and fleet listing).
+ * Super admin is intentionally absent — /super-admin/login exists for
+ * platform staff but is never advertised to ordinary customers.
  */
 export function SiteHeader() {
   return (
@@ -53,6 +57,7 @@ export function SiteHeader() {
           <MobileNav
             links={[
               ...NAV_LINKS,
+              { href: "/partner/login", label: "Partner Login" },
               { href: "/login", label: "Log in" },
               { href: "/register", label: "Sign up" },
             ]}

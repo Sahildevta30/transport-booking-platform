@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+import { areaForPath, loginPathForPath } from "@/lib/auth/redirects";
+
 /**
  * Next.js 16 proxy (formerly "middleware") — runs on every request (see
  * `config.matcher` below), on the Node.js runtime.
@@ -22,10 +24,10 @@ import { createServerClient } from "@supabase/ssr";
  * robustness improvement, not a security relaxation.
  */
 export async function proxy(request: NextRequest) {
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/customer") ||
-    request.nextUrl.pathname.startsWith("/admin") ||
-    request.nextUrl.pathname.startsWith("/super-admin");
+  // `areaForPath` is the single shared definition of what counts as a
+  // protected area (see lib/auth/redirects.ts), so this proxy and the
+  // area layouts can never drift apart on that boundary.
+  const isProtectedRoute = areaForPath(request.nextUrl.pathname) !== null;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -79,9 +81,18 @@ export async function proxy(request: NextRequest) {
   }
 }
 
+/**
+ * Sends an unauthenticated visitor to the login page that OWNS the area
+ * they tried to reach (/login, /partner/login or /super-admin/login) and
+ * preserves their intended destination as `next` — the same parameter
+ * name the login pages and /auth/redirect read. These used to disagree
+ * (`redirectTo` here vs `next` there), which silently dropped every
+ * deep link and dumped everyone on the customer dashboard.
+ */
 function redirectToLogin(request: NextRequest) {
-  const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("redirectTo", request.nextUrl.pathname);
+  const pathname = request.nextUrl.pathname;
+  const loginUrl = new URL(loginPathForPath(pathname), request.url);
+  loginUrl.searchParams.set("next", pathname + request.nextUrl.search);
   return NextResponse.redirect(loginUrl);
 }
 

@@ -3,18 +3,24 @@ import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { AdminTopbar } from "@/components/admin/topbar";
 import { getSessionUser } from "@/lib/auth/session";
-import { canAccessAdminArea } from "@/lib/auth/roles";
+import { canAccessAdminArea, canAccessSupervisionArea } from "@/lib/auth/roles";
+import { AREA_LOGIN_PATH } from "@/lib/auth/redirects";
 
 /**
- * Explicit, server-side authorization check for the admin area.
+ * Explicit, server-side authorization check for the partner/admin area.
  *
- * Middleware only confirms "is someone logged in" — this layout is where
- * "is this someone allowed in the admin area" actually gets decided.
- * `canAccessAdminArea` currently has nothing to check against
- * (accountType is null until Phase 2's `profiles` table exists), so this
- * intentionally fails closed: nobody gets into /admin until that lookup
- * is real. Do not loosen this to "unblock" testing — wire up the real
- * profiles lookup instead.
+ * The proxy only answers "is anyone logged in"; this layout answers "is
+ * THIS someone allowed to operate a fleet". Every /admin/* page renders
+ * inside it, so there is no route in the area that can skip the check.
+ *
+ * Deliberate redirect behaviour for the deny cases:
+ *  - not signed in      → the partner login page, carrying `next`
+ *  - super admin        → /super-admin. Supervision is read-only by
+ *                         design; a super admin must never silently pick
+ *                         up a partner's operational write permissions.
+ *  - everyone else      → /partner/apply, because "customer without a
+ *                         partner organization" is an onboarding state,
+ *                         not an error.
  */
 export default async function AdminLayout({
   children,
@@ -22,8 +28,12 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const user = await getSessionUser();
-  if (!user) redirect("/login");
-  if (!canAccessAdminArea(user.accountType)) redirect("/");
+  if (!user) redirect(`${AREA_LOGIN_PATH.partner}?next=/admin/dashboard`);
+
+  if (!canAccessAdminArea(user.accountType)) {
+    if (canAccessSupervisionArea(user.accountType)) redirect("/super-admin");
+    redirect("/partner/apply");
+  }
 
   return (
     <div className="flex min-h-screen">
