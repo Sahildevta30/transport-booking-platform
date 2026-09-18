@@ -153,3 +153,27 @@ begin
 end $$;
 revoke execute on function public.activate_partner(text,text) from public,anon;
 grant execute on function public.activate_partner(text,text) to authenticated;
+
+
+-- Partner booking visibility and operation. Customer-owned policies remain independent.
+create policy "members can read own fleet bookings" on public.bookings
+for select to authenticated using (exists (
+  select 1 from public.trips t
+  join public.vehicles v on v.id=t.vehicle_id
+  where t.id=bookings.trip_id and v.organization_id in (select public.current_organization_ids())
+));
+create policy "admins can update own fleet bookings" on public.bookings
+for update to authenticated using (exists (
+  select 1 from public.trips t
+  join public.vehicles v on v.id=t.vehicle_id
+  join public.organization_memberships om on om.organization_id=v.organization_id
+  where t.id=bookings.trip_id and om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+)) with check (exists (
+  select 1 from public.trips t
+  join public.vehicles v on v.id=t.vehicle_id
+  join public.organization_memberships om on om.organization_id=v.organization_id
+  where t.id=bookings.trip_id and om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+));
+
+create policy "members can read own organizations" on public.organizations
+for select to authenticated using (id in (select public.current_organization_ids()));
