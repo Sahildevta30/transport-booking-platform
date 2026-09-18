@@ -3,7 +3,7 @@
 export const BOOKING_MODES = ["SEAT_BOOKING", "FULL_VEHICLE_BOOKING", "BOTH"] as const;
 export type BookingMode = (typeof BOOKING_MODES)[number];
 
-export const ACCOUNT_TYPES = ["CUSTOMER", "ADMIN", "STAFF"] as const;
+export const ACCOUNT_TYPES = ["CUSTOMER", "ADMIN", "STAFF", "SUPER_ADMIN"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 export const ROLES = ["SUPER_ADMIN", "ADMIN", "STAFF", "DRIVER", "AGENT", "CUSTOMER"] as const;
