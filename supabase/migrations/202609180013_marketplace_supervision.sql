@@ -133,8 +133,6 @@ create table if not exists public.partner_terms_acceptances (
 alter table public.partner_terms_acceptances enable row level security;
 create policy "users can read own partner acceptance" on public.partner_terms_acceptances
 for select to authenticated using (user_id=auth.uid());
-create policy "users can accept partner terms" on public.partner_terms_acceptances
-for insert to authenticated with check (user_id=auth.uid());
 
 create or replace function public.activate_partner(p_organization_name text,p_terms_version text)
 returns uuid language plpgsql security definer set search_path=public,pg_temp
@@ -142,6 +140,7 @@ as $$
 declare v_org uuid;
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if not exists(select 1 from public.profiles where id=auth.uid() and account_type::text='CUSTOMER') then raise exception 'Only customer accounts can activate a partner workspace'; end if;
   if length(trim(p_organization_name)) < 2 then raise exception 'Organization name required'; end if;
   if coalesce(trim(p_terms_version),'') <> '2026-09-18' then raise exception 'Current terms must be accepted'; end if;
   if exists(select 1 from public.organization_memberships where user_id=auth.uid()) then raise exception 'Partner membership already exists'; end if;
