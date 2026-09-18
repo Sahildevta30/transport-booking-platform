@@ -8,7 +8,7 @@ import { createServerClient } from "@supabase/ssr";
  * Two jobs, both server-side (never trust a client-side redirect alone):
  *  1. Refresh the Supabase auth cookie so sessions don't silently expire
  *     mid-visit.
- *  2. Block unauthenticated access to /customer and /admin before the
+ *  2. Block unauthenticated access to /customer, /admin and /super-admin before the
  *     page even renders. Role-specific checks (customer vs admin vs
  *     staff) happen deeper, in each area's layout, once the `profiles`
  *     table exists in Phase 2 — this proxy only answers
@@ -24,7 +24,8 @@ import { createServerClient } from "@supabase/ssr";
 export async function proxy(request: NextRequest) {
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/customer") ||
-    request.nextUrl.pathname.startsWith("/admin");
+    request.nextUrl.pathname.startsWith("/admin") ||
+    request.nextUrl.pathname.startsWith("/super-admin");
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
