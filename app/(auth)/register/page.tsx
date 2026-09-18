@@ -35,9 +35,7 @@ function getSignupErrorMessage(message: string, status?: number) {
 }
 
 export default function RegisterPage() {
-  const searchParams = useSearchParams();
-  const requestedNext = searchParams.get("next");
-  const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/customer/dashboard";
+  const next = typeof window !== "undefined" ? (() => { const value = new URLSearchParams(window.location.search).get("next"); return value?.startsWith("/") && !value.startsWith("//") ? value : "/customer/dashboard"; })() : "/customer/dashboard";
   const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
