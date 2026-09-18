@@ -86,3 +86,35 @@ for update to authenticated using (
     where om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
   )
 );
+
+
+create policy "members can read own organization routes" on public.routes
+for select to authenticated using (organization_id in (select public.current_organization_ids()));
+create policy "admins can insert own organization routes" on public.routes
+for insert to authenticated with check (organization_id in (
+  select om.organization_id from public.organization_memberships om where om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+));
+create policy "admins can update own organization routes" on public.routes
+for update to authenticated using (organization_id in (
+  select om.organization_id from public.organization_memberships om where om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+)) with check (organization_id in (
+  select om.organization_id from public.organization_memberships om where om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+));
+
+create policy "members can read own fleet trips" on public.trips
+for select to authenticated using (exists (
+  select 1 from public.vehicles v where v.id=trips.vehicle_id and v.organization_id in (select public.current_organization_ids())
+));
+create policy "admins can insert own fleet trips" on public.trips
+for insert to authenticated with check (exists (
+  select 1 from public.vehicles v join public.organization_memberships om on om.organization_id=v.organization_id
+  where v.id=trips.vehicle_id and om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+));
+create policy "admins can update own fleet trips" on public.trips
+for update to authenticated using (exists (
+  select 1 from public.vehicles v join public.organization_memberships om on om.organization_id=v.organization_id
+  where v.id=trips.vehicle_id and om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+)) with check (exists (
+  select 1 from public.vehicles v join public.organization_memberships om on om.organization_id=v.organization_id
+  where v.id=trips.vehicle_id and om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+));
