@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RazorpayProvider } from "@/lib/payments/razorpay";
 
-type RazorpayWebhook={event?:string;payload?:{payment?:{entity?:{id?:string;order_id?:string;amount?:number;currency?:string;status?:string;error_code?:string;error_description?:string}};refund?:{entity?:{id?:string;payment_id?:string;status?:string}}}}};
+type PaymentEntity = { id?: string; order_id?: string; amount?: number; currency?: string; status?: string; error_code?: string; error_description?: string };
+type RefundEntity = { id?: string; payment_id?: string; status?: string };
+type RazorpayWebhook = { event?: string; payload?: { payment?: { entity?: PaymentEntity }; refund?: { entity?: RefundEntity } } };
 
 export async function POST(request:Request){
  const rawBody=await request.text();const signature=request.headers.get("x-razorpay-signature")??"";const provider=new RazorpayProvider();
