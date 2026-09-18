@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";\nimport Link from "next/link";
+import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
