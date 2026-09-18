@@ -1,42 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Search, Ticket, Wallet } from "lucide-react";
+import { ArrowRight, Bus, CalendarDays, Car, MapPin, Search, Sparkles, Ticket, Users, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-
-export const metadata: Metadata = { title: "Dashboard" };
-
-export default async function CustomerDashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/customer/dashboard");
-
-  const [{ data: profile }, { data: bookings }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-    supabase.from("bookings").select("id,status,amount,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-  ]);
-
-  const rows = bookings ?? [];
-  const active = rows.filter((b) => !["COMPLETED", "CANCELLED"].includes(String(b.status))).length;
-  const bookedValue = rows.reduce((sum, b) => sum + Number(b.amount ?? 0), 0);
-  const name = profile?.full_name?.trim() || user.email?.split("@")[0] || "Traveller";
-
-  return <div className="space-y-8">
-    <section className="overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/10 via-card to-card p-7 shadow-sm sm:p-10">
-      <p className="text-sm font-medium text-primary">Customer dashboard</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Welcome back, {name}</h1>
-      <p className="mt-3 max-w-2xl text-muted-foreground">Search transport, manage your reservations and keep your upcoming travel in one place.</p>
-      <div className="mt-6 flex flex-wrap gap-3"><Button asChild><Link href="/search"><Search className="mr-2 h-4 w-4"/>Search trips</Link></Button><Button asChild variant="outline"><Link href="/customer/bookings"><Ticket className="mr-2 h-4 w-4"/>My bookings</Link></Button></div>
-    </section>
-    <section className="grid gap-4 sm:grid-cols-3">
-      <div className="rounded-2xl border bg-card p-5"><Ticket className="h-5 w-5 text-primary"/><p className="mt-4 text-3xl font-semibold">{rows.length}</p><p className="text-sm text-muted-foreground">Recent bookings</p></div>
-      <div className="rounded-2xl border bg-card p-5"><CalendarDays className="h-5 w-5 text-primary"/><p className="mt-4 text-3xl font-semibold">{active}</p><p className="text-sm text-muted-foreground">Active / upcoming</p></div>
-      <div className="rounded-2xl border bg-card p-5"><Wallet className="h-5 w-5 text-primary"/><p className="mt-4 text-3xl font-semibold">₹{bookedValue.toFixed(0)}</p><p className="text-sm text-muted-foreground">Recent booked value</p></div>
-    </section>
-    <section><div className="mb-4 flex items-center justify-between"><div><h2 className="text-xl font-semibold">Recent bookings</h2><p className="text-sm text-muted-foreground">Your latest reservations and their current status.</p></div><Button asChild variant="ghost"><Link href="/customer/bookings">View all</Link></Button></div>
-    {!rows.length ? <div className="rounded-2xl border border-dashed p-10 text-center"><Ticket className="mx-auto h-8 w-8 text-muted-foreground"/><p className="mt-3 font-medium">No bookings yet</p><p className="mt-1 text-sm text-muted-foreground">Your first reservation will appear here.</p><Button asChild className="mt-5"><Link href="/search">Find a trip</Link></Button></div> :
-    <div className="grid gap-3">{rows.map((b)=><Link key={b.id} href={`/customer/bookings/${b.id}`} className="flex items-center justify-between rounded-2xl border bg-card p-5 transition hover:bg-muted/40"><div><p className="font-medium">Booking {b.id.slice(0,8).toUpperCase()}</p><p className="text-sm text-muted-foreground">{new Date(b.created_at).toLocaleDateString()} · {b.status}</p></div><p className="font-semibold">₹{Number(b.amount).toFixed(2)}</p></Link>)}</div>}
-    </section>
-  </div>;
+export const metadata:Metadata={title:"Dashboard"};
+const modes=[{label:"Cab",sub:"Quick city rides",icon:Car},{label:"Bus",sub:"Comfortable seats",icon:Bus},{label:"Traveller",sub:"Perfect for groups",icon:Users}];
+export default async function CustomerDashboardPage(){
+ const supabase=await createClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect("/login?next=/customer/dashboard");
+ const [{data:profile},{data:bookings}]=await Promise.all([supabase.from("profiles").select("full_name").eq("id",user.id).maybeSingle(),supabase.from("bookings").select("id,status,amount,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(5)]);
+ const rows=bookings??[],active=rows.filter(b=>!["COMPLETED","CANCELLED"].includes(String(b.status))).length,value=rows.reduce((n,b)=>n+Number(b.amount??0),0),name=profile?.full_name?.trim()||user.email?.split("@")[0]||"Traveller";
+ return <div className="space-y-8">
+  <section className="relative overflow-hidden rounded-[2rem] border bg-[linear-gradient(120deg,hsl(var(--primary)),hsl(224_76%_32%))] p-7 text-white shadow-2xl shadow-primary/15 sm:p-10 lg:p-12">
+   <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-white/10 blur-2xl"/><div className="absolute bottom-0 right-10 hidden text-white/10 lg:block"><Bus className="h-56 w-56"/></div>
+   <div className="relative max-w-2xl"><div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur"><Sparkles className="h-3.5 w-3.5"/>Your next journey starts here</div><h1 className="mt-5 text-4xl font-bold tracking-tight sm:text-5xl">Where are we going, {name.split(" ")[0]}?</h1><p className="mt-4 max-w-xl text-sm leading-6 text-blue-100 sm:text-base">Find a seat, book a cab or reserve the whole vehicle. One search, multiple ways to travel.</p>
+   <form action="/search" className="mt-7 flex max-w-xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-xl sm:flex-row"><div className="flex flex-1 items-center gap-2 px-3 text-slate-500"><MapPin className="h-4 w-4"/><input name="from" required placeholder="From" className="min-w-0 flex-1 bg-transparent py-2 text-sm text-slate-900 outline-none"/></div><div className="hidden w-px bg-slate-200 sm:block"/><div className="flex flex-1 items-center gap-2 px-3 text-slate-500"><MapPin className="h-4 w-4"/><input name="to" required placeholder="Where to?" className="min-w-0 flex-1 bg-transparent py-2 text-sm text-slate-900 outline-none"/></div><Button type="submit" className="rounded-xl bg-slate-950 text-white hover:bg-slate-800"><Search className="mr-2 h-4 w-4"/>Explore</Button></form></div>
+  </section>
+  <section><div className="mb-4 flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-primary">Travel your way</p><h2 className="mt-1 text-2xl font-bold">Choose your ride</h2></div><Link href="/search" className="text-sm font-medium text-primary">See all →</Link></div><div className="grid gap-4 sm:grid-cols-3">{modes.map(({label,sub,icon:Icon})=><Link href="/search" key={label} className="group rounded-2xl border bg-card p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"><div className="flex items-center justify-between"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary"><Icon className="h-6 w-6"/></span><ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-5 font-semibold">{label}</p><p className="mt-1 text-sm text-muted-foreground">{sub}</p></Link>)}</div></section>
+  <section className="grid gap-4 sm:grid-cols-3"><div className="rounded-2xl border bg-card p-5 shadow-sm"><Ticket className="h-5 w-5 text-primary"/><p className="mt-4 text-3xl font-bold">{rows.length}</p><p className="text-sm text-muted-foreground">Recent bookings</p></div><div className="rounded-2xl border bg-card p-5 shadow-sm"><CalendarDays className="h-5 w-5 text-primary"/><p className="mt-4 text-3xl font-bold">{active}</p><p className="text-sm text-muted-foreground">Active / upcoming</p></div><div className="rounded-2xl border bg-card p-5 shadow-sm"><Wallet className="h-5 w-5 text-primary"/><p className="mt-4 text-3xl font-bold">₹{value.toFixed(0)}</p><p className="text-sm text-muted-foreground">Recent booked value</p></div></section>
+  <section><div className="mb-4 flex items-center justify-between"><div><h2 className="text-2xl font-bold">Your journeys</h2><p className="text-sm text-muted-foreground">Latest reservations at a glance.</p></div><Button asChild variant="ghost"><Link href="/customer/bookings">View all</Link></Button></div>{!rows.length?<div className="rounded-[2rem] border border-dashed bg-card/60 p-10 text-center"><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary"><Ticket className="h-6 w-6"/></span><p className="mt-4 text-lg font-semibold">Your travel story starts here</p><p className="mt-1 text-sm text-muted-foreground">No bookings yet. Explore available trips and make your first reservation.</p><Button asChild className="mt-5 rounded-xl"><Link href="/search">Explore trips</Link></Button></div>:<div className="grid gap-3">{rows.map(b=><Link key={b.id} href={`/customer/bookings/${b.id}`} className="flex items-center justify-between rounded-2xl border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div><p className="font-semibold">Booking {b.id.slice(0,8).toUpperCase()}</p><p className="text-sm text-muted-foreground">{new Date(b.created_at).toLocaleDateString()} · {b.status}</p></div><p className="font-bold">₹{Number(b.amount).toFixed(2)}</p></Link>)}</div>}</section>
+ </div>;
 }
