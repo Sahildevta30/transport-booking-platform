@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/routes", label: "Routes" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/partner/apply", label: "List your fleet" },
 ] as const;
 
 /**

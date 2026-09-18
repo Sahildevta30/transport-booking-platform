@@ -11,13 +11,19 @@ export const metadata: Metadata = { title: "Add vehicle" };
 
 export default async function NewVehiclePage() {
   const supabase = await createClient();
-  const { data: organizations } = await supabase.from("organizations").select("id,name").order("name");
+  const { data: memberships } = await supabase.from("organization_memberships").select("organization_id").eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "");
+  const organizationIds = (memberships ?? []).map((membership) => membership.organization_id);
+  const { data: organizations } = organizationIds.length ? await supabase.from("organizations").select("id,name").in("id", organizationIds).order("name") : { data: [] };
   const { data: vehicleTypes } = await supabase.from("vehicle_types").select("id,name,booking_mode").order("name");
 
   async function createVehicle(formData: FormData) {
     "use server";
     const client = await createClient();
     const organizationId = String(formData.get("organization_id") ?? "");
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) redirect("/login?next=/admin/vehicles/new");
+    const { data: membership } = await client.from("organization_memberships").select("role").eq("organization_id", organizationId).eq("user_id", user.id).in("role", ["OWNER","ADMIN"]).maybeSingle();
+    if (!membership) redirect("/admin/vehicles/new?error=forbidden");
     const vehicleTypeId = String(formData.get("vehicle_type_id") ?? "");
     const registrationNumber = String(formData.get("registration_number") ?? "").trim().toUpperCase();
     const label = String(formData.get("label") ?? "").trim();

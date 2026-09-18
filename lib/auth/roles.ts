@@ -16,6 +16,10 @@ import type { AccountType, Role } from "@/types/domain";
 
 const ADMIN_AREA_ACCOUNT_TYPES: readonly AccountType[] = ["ADMIN", "STAFF"];
 
+export function canAccessSupervisionArea(accountType: AccountType | null): boolean {
+  return accountType === "SUPER_ADMIN";
+}
+
 export function canAccessAdminArea(accountType: AccountType | null): boolean {
   if (!accountType) return false;
   return ADMIN_AREA_ACCOUNT_TYPES.includes(accountType);
