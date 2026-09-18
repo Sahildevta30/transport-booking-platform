@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RazorpayProvider } from "@/lib/payments/razorpay";
+import type { Database } from "@/types/database";
 
 type PaymentEntity = { id?: string; order_id?: string; amount?: number; currency?: string; status?: string; error_code?: string; error_description?: string };
 type RefundEntity = { id?: string; payment_id?: string; status?: string };
@@ -17,7 +18,7 @@ export async function POST(request:Request){
  const{data:existing}=await admin.from("payment_events").select("processed_at").eq("provider","RAZORPAY").eq("provider_event_id",eventId).maybeSingle();if(existing?.processed_at)return NextResponse.json({ok:true,duplicate:true});
  if(!existing){const{error}=await admin.from("payment_events").insert({payment_id:payment?.id??null,provider:"RAZORPAY",provider_event_id:eventId,event_type:event.event??"unknown",payload:event as never,processed_at:null});if(error&&error.code!=="23505")return NextResponse.json({error:"Unable to record event"},{status:500});}
  if(!payment)return NextResponse.json({error:"Payment not found"},{status:409});
- const now=new Date().toISOString();let update:Record<string,unknown>|null=null;
+ const now=new Date().toISOString();let update:Database["public"]["Tables"]["payments"]["Update"]|null=null;
  if(event.event==="payment.captured"&&paymentEntity?.id){const expected=Math.round(payment.amount*100);if(paymentEntity.amount!==expected||paymentEntity.currency?.toUpperCase()!==payment.currency.toUpperCase())return NextResponse.json({error:"Payment amount or currency mismatch"},{status:409});update={provider_payment_id:paymentEntity.id,status:"SUCCESS",paid_at:now,failure_code:null,failure_message:null,updated_at:now};}
  else if(event.event==="payment.failed")update={provider_payment_id:paymentEntity?.id??null,status:"FAILED",failure_code:paymentEntity?.error_code??null,failure_message:paymentEntity?.error_description?.slice(0,500)??"Payment failed",updated_at:now};
  else if(event.event==="refund.processed")update={status:"REFUNDED",updated_at:now};
