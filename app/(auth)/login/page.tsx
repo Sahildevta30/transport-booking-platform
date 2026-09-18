@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +22,9 @@ import { loginSchema, type LoginInput } from "@/lib/validation/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedNext = searchParams.get("next");
+  const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/customer/dashboard";
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
@@ -45,7 +48,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/customer/dashboard");
+    router.push(next);
     router.refresh();
   }
 
@@ -111,7 +114,7 @@ export default function LoginPage() {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-medium text-primary hover:underline">
+            <Link href={next === "/customer/dashboard" ? "/register" : `/register?next=${encodeURIComponent(next)}`} className="font-medium text-primary hover:underline">
               Sign up
             </Link>
           </p>
