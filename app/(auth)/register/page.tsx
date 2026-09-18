@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -34,6 +35,9 @@ function getSignupErrorMessage(message: string, status?: number) {
 }
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams();
+  const requestedNext = searchParams.get("next");
+  const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/customer/dashboard";
   const [formError, setFormError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -51,7 +55,7 @@ export default function RegisterPage() {
       email: values.email,
       password: values.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/customer/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         data: {
           full_name: values.fullName,
           phone: values.phone,
@@ -79,7 +83,7 @@ export default function RegisterPage() {
         <CardContent>
           <p className="text-sm text-muted-foreground">
             Already confirmed your account?{" "}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href={next === "/customer/dashboard" ? "/login" : `/login?next=${encodeURIComponent(next)}`} className="font-medium text-primary hover:underline">
               Log in
             </Link>
           </p>
