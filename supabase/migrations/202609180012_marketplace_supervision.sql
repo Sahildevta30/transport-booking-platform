@@ -54,3 +54,35 @@ $$;
 
 revoke execute on function public.supervision_overview() from public,anon;
 grant execute on function public.supervision_overview() to authenticated;
+
+
+create or replace function public.current_organization_ids()
+returns setof uuid language sql stable security definer set search_path=public,pg_temp
+as $$
+  select organization_id from public.organization_memberships where user_id=auth.uid()
+$$;
+revoke execute on function public.current_organization_ids() from public,anon;
+grant execute on function public.current_organization_ids() to authenticated;
+
+-- Partner admins can operate only their own organizations. Super Admin receives no write policy.
+create policy "members can read own organization vehicles" on public.vehicles
+for select to authenticated using (organization_id in (select public.current_organization_ids()));
+create policy "admins can insert own organization vehicles" on public.vehicles
+for insert to authenticated with check (
+  organization_id in (
+    select om.organization_id from public.organization_memberships om
+    where om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+  )
+);
+create policy "admins can update own organization vehicles" on public.vehicles
+for update to authenticated using (
+  organization_id in (
+    select om.organization_id from public.organization_memberships om
+    where om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+  )
+) with check (
+  organization_id in (
+    select om.organization_id from public.organization_memberships om
+    where om.user_id=auth.uid() and om.role in ('OWNER','ADMIN')
+  )
+);
