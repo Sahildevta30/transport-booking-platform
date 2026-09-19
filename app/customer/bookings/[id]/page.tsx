@@ -85,11 +85,11 @@ export default async function BookingDetail({ params }: Props) {
       </Button>
       <div>
         <p className="text-sm text-muted-foreground">Booking reference</p>
-        <h1 className="text-3xl font-semibold">
+        <h1 className="text-4xl font-black tracking-tight">
           {b.id.slice(0, 8).toUpperCase()}
         </h1>
       </div>
-      <div className="grid gap-4 rounded-xl border bg-card p-6 sm:grid-cols-2">
+      <div className="grid gap-4 rounded-[1.75rem] border bg-card p-6 shadow-sm sm:grid-cols-2">
         <p>
           <b>Status:</b> {b.status}
         </p>
@@ -119,7 +119,7 @@ export default async function BookingDetail({ params }: Props) {
         ) : null}
       </div>
       {cancellation ? (
-        <section className="rounded-xl border bg-card p-6">
+        <section className="rounded-[1.75rem] border bg-card p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Cancellation</h2>
           <p className="mt-2 text-sm">
             Cancelled {new Date(cancellation.created_at).toLocaleString()}
@@ -142,10 +142,10 @@ export default async function BookingDetail({ params }: Props) {
       ) : null}
       {canCancel ? <CancelBookingPanel bookingId={b.id} /> : null}
       <div>
-        <h2 className="text-xl font-semibold">Passengers</h2>
+        <h2 className="text-2xl font-black">Passengers</h2>
         <div className="mt-3 grid gap-3">
           {passengers?.map((p) => (
-            <div key={p.id} className="rounded-lg border p-4">
+            <div key={p.id} className="rounded-2xl border bg-card p-4 shadow-sm">
               <p className="font-medium">{p.full_name}</p>
               <p className="text-sm text-muted-foreground">{p.phone}</p>
             </div>
