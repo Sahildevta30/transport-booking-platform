@@ -48,7 +48,7 @@ export function SiteFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-background/60 transition-colors hover:text-foreground"
+                    className="text-sm text-background/60 transition-colors hover:text-background"
                   >
                     {link.label}
                   </Link>
