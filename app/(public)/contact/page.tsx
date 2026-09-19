@@ -1,19 +1,6 @@
 import type { Metadata } from "next";
-import { Mail } from "lucide-react";
-
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
-
-export const metadata: Metadata = {
-  title: "Contact Us",
-};
-
-export default function Page() {
-  return (
-    <PagePlaceholder
-      icon={Mail}
-      title="Contact Us"
-      description="Get in touch with our support team."
-      note=""
-    />
-  );
-}
+import Link from "next/link";
+import { ArrowRight, Headphones, Mail, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+export const metadata:Metadata={title:"Contact"};
+export default function Page(){return <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8"><div className="max-w-3xl"><p className="text-xs font-black uppercase tracking-[.2em] text-primary">Help when you need it</p><h1 className="mt-3 text-4xl font-black tracking-tight sm:text-5xl">Need help with your journey?</h1><p className="mt-4 text-lg text-muted-foreground">Booking-specific actions and status live inside your account so your request stays connected to the right reservation.</p></div><div className="mt-10 grid gap-4 md:grid-cols-3"><div className="rounded-[1.75rem] border bg-card p-6 shadow-sm"><Headphones className="h-6 w-6 text-primary"/><h2 className="mt-6 text-lg font-black">Booking support</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Open your bookings to review payment, cancellation and trip status.</p><Button asChild variant="outline" className="mt-5 rounded-xl"><Link href="/customer/bookings">My bookings <ArrowRight className="ml-2 h-4 w-4"/></Link></Button></div><div className="rounded-[1.75rem] border bg-card p-6 shadow-sm"><Mail className="h-6 w-6 text-primary"/><h2 className="mt-6 text-lg font-black">General questions</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Check quick answers about searching, booking, partners and refunds.</p><Button asChild variant="outline" className="mt-5 rounded-xl"><Link href="/faq">Read FAQ <ArrowRight className="ml-2 h-4 w-4"/></Link></Button></div><div className="rounded-[1.75rem] border bg-card p-6 shadow-sm"><ShieldCheck className="h-6 w-6 text-primary"/><h2 className="mt-6 text-lg font-black">Transport partner?</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Use the dedicated partner entry for onboarding and fleet operations.</p><Button asChild variant="outline" className="mt-5 rounded-xl"><Link href="/partner">Partner portal <ArrowRight className="ml-2 h-4 w-4"/></Link></Button></div></div></div>;}
