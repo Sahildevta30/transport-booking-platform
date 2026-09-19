@@ -1,19 +1,7 @@
 import type { Metadata } from "next";
-import { HelpCircle } from "lucide-react";
-
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
-
-export const metadata: Metadata = {
-  title: "Frequently Asked Questions",
-};
-
-export default function Page() {
-  return (
-    <PagePlaceholder
-      icon={HelpCircle}
-      title="Frequently Asked Questions"
-      description="Answers to common questions about booking, cancellations, and payments."
-      note=""
-    />
-  );
-}
+import Link from "next/link";
+import { HelpCircle, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+export const metadata:Metadata={title:"FAQ"};
+const FAQ=[["Can I book a seat or the whole vehicle?","Yes. The available booking mode depends on the vehicle and trip configured by the transport partner."],["Is availability real?","Search and seat availability come from configured routes, trips and seat inventory. TransitBook does not invent availability."],["Where can I manage my bookings?","Sign in and open My Bookings in your customer dashboard to see your reservations and current status."],["Can a transport operator list vehicles?","Yes. Operators can use Partner with us, complete onboarding and manage their own organization and fleet."],["How do cancellations and refunds work?","Eligible bookings expose cancellation in the booking details. Any applicable refund is calculated by the platform cancellation rules and tracked with the payment state."]];
+export default function Page(){return <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8"><div className="text-center"><span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary"><HelpCircle className="h-6 w-6"/></span><h1 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">Questions? Start here.</h1><p className="mx-auto mt-3 max-w-xl text-muted-foreground">The essentials about searching, booking and managing your ride.</p></div><div className="mt-10 grid gap-3">{FAQ.map(([q,a])=><details key={q} className="group rounded-2xl border bg-card p-5 shadow-sm"><summary className="cursor-pointer list-none font-bold">{q}</summary><p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">{a}</p></details>)}</div><div className="mt-10 flex justify-center"><Button asChild className="rounded-xl"><Link href="/search">Explore rides <ArrowRight className="ml-2 h-4 w-4"/></Link></Button></div></div>;}
