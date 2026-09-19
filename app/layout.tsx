@@ -1,27 +1,28 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/manrope";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Transport Booking Platform",
-    template: "%s | Transport Booking Platform",
+    default: "TransitBook",
+    template: "%s | TransitBook",
   },
   description:
-    "Book seats or whole vehicles across taxis, buses, cars, and tempo travellers.",
+    "Book cabs, cars, buses, and tempo travellers by seat or whole vehicle — a multi-vendor transport marketplace.",
 };
 
-// Deliberately using the system font stack (see app/globals.css --font-sans)
-// instead of next/font/google: it removes a Google Fonts network
-// dependency from every build, which matters in offline/restricted CI
-// environments and avoids a runtime fetch for something purely cosmetic.
-// Swap in next/font/local with self-hosted font files if a specific
-// brand typeface is chosen later.
+// @fontsource-variable/manrope self-hosts the variable font as a static
+// asset shipped inside the npm package -- no Google Fonts network fetch
+// at build or runtime, so this keeps working in offline/restricted CI
+// exactly like the previous system-font-stack choice did, while giving
+// the marketplace a distinctive display typeface instead of whatever
+// each OS/browser happens to ship as its default UI font.
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
 }

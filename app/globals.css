@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
 /*
- * Design tokens for the Transport Booking Platform.
- * A modern, trustworthy "travel" palette: deep blue primary (confidence,
- * reliability), warm amber accent (booking / call-to-action energy).
+ * TransitBook design system.
+ *
+ * A travel-marketplace palette, not a generic SaaS-dashboard one: a deep
+ * teal-leaning blue for trust/reliability (the color of "this booking will
+ * actually happen"), and a warm coral/sunset accent for booking energy and
+ * price emphasis -- distinct from the ubiquitous indigo-and-amber shadcn
+ * default so the product doesn't read as a template.
+ *
  * Values are HSL triplets (no hsl() wrapper) so both plain CSS and the
  * Tailwind v4 @theme block can consume them directly.
  */
 :root {
-  --background: 0 0% 100%;
+  --background: 40 33% 98%;
   --foreground: 222 47% 11%;
 
   --card: 0 0% 100%;
@@ -17,32 +22,56 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  --primary: 217 91% 35%;
+  --primary: 200 98% 24%;
   --primary-foreground: 210 40% 98%;
 
-  --secondary: 210 40% 96%;
+  --secondary: 30 40% 95%;
   --secondary-foreground: 222 47% 11%;
 
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 30 20% 95%;
+  --muted-foreground: 215 16% 42%;
 
-  --accent: 38 92% 50%;
+  --accent: 14 88% 58%;
   --accent-foreground: 24 10% 10%;
 
   --destructive: 0 72% 51%;
   --destructive-foreground: 210 40% 98%;
 
-  --success: 142 71% 30%;
+  --success: 152 60% 30%;
   --success-foreground: 210 40% 98%;
 
   --warning: 38 92% 50%;
   --warning-foreground: 24 10% 10%;
 
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 217 91% 35%;
+  --border: 30 20% 90%;
+  --input: 30 20% 88%;
+  --ring: 200 98% 24%;
 
-  --radius: 0.625rem;
+  --radius: 1rem;
+
+  /* Marketplace-specific tokens: gradients, elevation, per-booking-mode
+     accents. Kept as separate custom properties (not folded into
+     --primary/--accent) so a page can opt into them deliberately instead
+     of every bordered box inheriting a gradient by accident. */
+  --gradient-hero: linear-gradient(
+    135deg,
+    hsl(200 98% 20%) 0%,
+    hsl(199 89% 28%) 45%,
+    hsl(190 70% 34%) 100%
+  );
+  --gradient-accent: linear-gradient(
+    135deg,
+    hsl(14 88% 58%) 0%,
+    hsl(28 92% 58%) 100%
+  );
+  --shadow-elevated: 0 20px 40px -20px hsl(222 47% 11% / 0.25);
+  --shadow-card: 0 2px 10px -4px hsl(222 47% 11% / 0.12);
+
+  /* Booking-mode accents used consistently anywhere seat-vs-full-vehicle
+     status is shown (search results, seat map legend, booking summary) so
+     the same color always means the same thing across the product. */
+  --mode-seat: 200 98% 24%;
+  --mode-full-vehicle: 14 88% 58%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -50,28 +79,28 @@
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 8%;
+    --card: 222 40% 9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 8%;
+    --popover: 222 40% 9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 199 89% 55%;
+    --primary-foreground: 222 47% 8%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 217 33% 15%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 38 92% 55%;
+    --accent: 14 88% 62%;
     --accent-foreground: 24 10% 10%;
 
     --destructive: 0 63% 45%;
     --destructive-foreground: 210 40% 98%;
 
-    --success: 142 60% 45%;
+    --success: 152 55% 45%;
     --success-foreground: 210 40% 98%;
 
     --warning: 38 92% 55%;
@@ -79,7 +108,18 @@
 
     --border: 217 33% 20%;
     --input: 217 33% 20%;
-    --ring: 217 91% 60%;
+    --ring: 199 89% 55%;
+
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(222 47% 8%) 0%,
+      hsl(200 60% 16%) 50%,
+      hsl(190 50% 20%) 100%
+    );
+    --shadow-elevated: 0 20px 40px -20px hsl(0 0% 0% / 0.6);
+    --shadow-card: 0 2px 10px -4px hsl(0 0% 0% / 0.4);
+    --mode-seat: 199 89% 55%;
+    --mode-full-vehicle: 14 88% 62%;
   }
 }
 
@@ -107,11 +147,14 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-mode-seat: hsl(var(--mode-seat));
+  --color-mode-full-vehicle: hsl(var(--mode-full-vehicle));
+  --radius-xl: calc(var(--radius) + 6px);
   --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
     monospace;
 }
@@ -123,5 +166,25 @@
   body {
     background: hsl(var(--background));
     color: hsl(var(--foreground));
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-hero {
+    background-image: var(--gradient-hero);
+  }
+  .bg-gradient-accent {
+    background-image: var(--gradient-accent);
+  }
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
   }
 }
