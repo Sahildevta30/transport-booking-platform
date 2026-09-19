@@ -37,14 +37,14 @@ const FEATURES = [
 
 export default function PartnerLandingPage() {
   return (
-    <div className="bg-gradient-to-b from-background via-background to-muted/40">
+    <div className="bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/.14),transparent_32%),linear-gradient(to_bottom,hsl(var(--background)),hsl(var(--muted)/.35))]">
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
         <div className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm shadow-sm">
           <ShieldCheck className="h-4 w-4 text-primary" />
           For transport operators
         </div>
 
-        <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
+        <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-[-.04em] sm:text-6xl">
           Put your fleet in front of customers ready to travel.
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
@@ -77,7 +77,7 @@ export default function PartnerLandingPage() {
 
         <div className="mt-14 grid gap-4 sm:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="rounded-2xl border bg-card/70 p-5 shadow-sm">
+            <div key={title} className="rounded-[1.75rem] border bg-card/80 p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
               <div className="mb-3 w-fit rounded-xl bg-primary/10 p-2.5">
                 <Icon className="h-5 w-5 text-primary" />
               </div>
@@ -87,7 +87,7 @@ export default function PartnerLandingPage() {
           ))}
         </div>
 
-        <div className="mt-10 rounded-2xl border bg-card p-5 text-sm text-muted-foreground shadow-sm">
+        <div className="mt-10 rounded-[1.75rem] border bg-card p-6 text-sm leading-7 text-muted-foreground shadow-sm">
           <span className="font-medium text-foreground">How onboarding works:</span> register or
           log in with your normal account → open{" "}
           <Link href="/partner/apply" className="text-primary hover:underline">
