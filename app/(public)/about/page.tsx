@@ -1,6 +1,92 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Bus, Car, ShieldCheck, Sparkles, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Bus,
+  Car,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-export const metadata: Metadata={title:"About TransitBook"};
-export default function Page(){return <div className="overflow-hidden"><section className="relative border-b bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/.16),transparent_34%)]"><div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28"><span className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1.5 text-xs font-bold backdrop-blur"><Sparkles className="h-3.5 w-3.5 text-primary"/>One marketplace for the road</span><h1 className="mt-6 max-w-4xl text-5xl font-black tracking-[-.04em] sm:text-6xl">Travel should feel simple, even when the options aren’t.</h1><p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">TransitBook brings seat bookings and whole-vehicle reservations into one experience for customers and transport partners.</p><Button asChild size="lg" className="mt-8 rounded-xl"><Link href="/search">Explore rides <ArrowRight className="ml-2 h-4 w-4"/></Link></Button></div></section><section className="mx-auto grid max-w-7xl gap-4 px-4 py-16 sm:px-6 md:grid-cols-3 lg:px-8">{[[Car,"Flexible choices","Cabs and full-vehicle trips for plans that need privacy and flexibility."],[Bus,"Seats when you need them","Scheduled transport with real availability rather than fabricated inventory."],[Users,"Built for groups","Tempo travellers and group-friendly vehicles live in the same booking journey."]].map(([Icon,title,body])=><div key={String(title)} className="rounded-[1.75rem] border bg-card p-6 shadow-sm"><Icon className="h-6 w-6 text-primary"/><h2 className="mt-6 text-xl font-black">{String(title)}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{String(body)}</p></div>)}</section><section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8"><div className="rounded-[2rem] bg-foreground p-8 text-background sm:p-10"><ShieldCheck className="h-7 w-7"/><h2 className="mt-5 text-3xl font-black">A marketplace with clear roles.</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-background/70">Customers book and manage their travel. Partners operate their own fleet and bookings. Platform supervision stays separate from day-to-day operations.</p></div></section></div>;}
+export const metadata: Metadata = { title: "About TransitBook" };
+
+// A plain heterogeneous array literal (icon component + strings mixed per
+// row) makes TypeScript infer each destructured element as the union of
+// every type in the array, not the type at that row's position -- so
+// `Icon` ends up typed as `string | LucideIcon | undefined` and stops
+// being usable as a JSX element (TS2604/TS2786, and a real build failure,
+// not just a lint nag). An explicit array of objects keeps each field's
+// real type and renders identically.
+const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
+  {
+    icon: Car,
+    title: "Flexible choices",
+    body: "Cabs and full-vehicle trips for plans that need privacy and flexibility.",
+  },
+  {
+    icon: Bus,
+    title: "Seats when you need them",
+    body: "Scheduled transport with real availability rather than fabricated inventory.",
+  },
+  {
+    icon: Users,
+    title: "Built for groups",
+    body: "Tempo travellers and group-friendly vehicles live in the same booking journey.",
+  },
+];
+
+export default function Page() {
+  return (
+    <div className="overflow-hidden">
+      <section className="relative border-b bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/.16),transparent_34%)]">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+          <span className="inline-flex items-center gap-2 rounded-full border bg-background/70 px-3 py-1.5 text-xs font-bold backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            One marketplace for the road
+          </span>
+          <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-[-.04em] sm:text-6xl">
+            Travel should feel simple, even when the options aren’t.
+          </h1>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
+            TransitBook brings seat bookings and whole-vehicle reservations into
+            one experience for customers and transport partners.
+          </p>
+          <Button asChild size="lg" className="mt-8 rounded-xl">
+            <Link href="/search">
+              Explore rides <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+      <section className="mx-auto grid max-w-7xl gap-4 px-4 py-16 sm:px-6 md:grid-cols-3 lg:px-8">
+        {FEATURES.map(({ icon: Icon, title, body }) => (
+          <div
+            key={title}
+            className="rounded-[1.75rem] border bg-card p-6 shadow-sm"
+          >
+            <Icon className="h-6 w-6 text-primary" />
+            <h2 className="mt-6 text-xl font-black">{title}</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {body}
+            </p>
+          </div>
+        ))}
+      </section>
+      <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] bg-foreground p-8 text-background sm:p-10">
+          <ShieldCheck className="h-7 w-7" />
+          <h2 className="mt-5 text-3xl font-black">
+            A marketplace with clear roles.
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-background/70">
+            Customers book and manage their travel. Partners operate their own
+            fleet and bookings. Platform supervision stays separate from
+            day-to-day operations.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}

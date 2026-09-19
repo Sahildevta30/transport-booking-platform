@@ -37,7 +37,7 @@ export function SiteHeader() {
         >
           {NAV_LINKS.map((link) => (
             <Link
-              key={link.href}
+              key={`${link.href}-${link.label}`}
               href={link.href}
               className="rounded-full px-3.5 py-2 transition-colors hover:bg-muted hover:text-foreground"
             >

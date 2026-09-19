@@ -40,7 +40,7 @@ export function MobileNav({ links }: { links: readonly MobileNavLink[] }) {
         >
           <ul className="flex flex-col gap-1.5 p-3">
             {links.map(({ href, label }) => (
-              <li key={href}>
+              <li key={`${href}-${label}`}>
                 <Link
                   href={href}
                   onClick={() => setOpen(false)}
