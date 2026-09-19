@@ -222,8 +222,7 @@ export function BookingForm({
       <div>
         <h2 className="text-2xl font-black tracking-tight">Complete your booking</h2>
         <p className="text-sm text-muted-foreground">
-          Availability is protected by database locking. Unavailable seats are
-          disabled.
+          Pick your booking style and passenger details. Selected seats stay held while you finish.
         </p>
         {mode === "SEAT_BOOKING" && selected.length > 0 ? (
           <p className="mt-2 text-sm font-medium" aria-live="polite">
@@ -232,7 +231,7 @@ export function BookingForm({
         ) : null}
       </div>
       {bookingMode === "BOTH" ? (
-        <div className="flex rounded-2xl bg-muted p-1.5 gap-1.5>
+        <div className="flex gap-1.5 rounded-2xl bg-muted p-1.5">
           <Button
             type="button"
             disabled={busy}
