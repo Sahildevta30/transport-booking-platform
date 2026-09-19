@@ -218,9 +218,9 @@ export function BookingForm({
   };
   const clock = `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`;
   return (
-    <div className="space-y-6 rounded-xl border bg-card p-6">
+    <div className="space-y-7 rounded-[2rem] border bg-card p-5 shadow-xl shadow-black/5 sm:p-7">
       <div>
-        <h2 className="text-xl font-semibold">Complete booking</h2>
+        <h2 className="text-2xl font-black tracking-tight">Complete your booking</h2>
         <p className="text-sm text-muted-foreground">
           Availability is protected by database locking. Unavailable seats are
           disabled.
@@ -232,7 +232,7 @@ export function BookingForm({
         ) : null}
       </div>
       {bookingMode === "BOTH" ? (
-        <div className="flex gap-2">
+        <div className="flex rounded-2xl bg-muted p-1.5 gap-1.5>
           <Button
             type="button"
             disabled={busy}
@@ -256,7 +256,7 @@ export function BookingForm({
           <p className="mb-3 text-sm font-medium">
             Select {passengerCount} seat(s)
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3 rounded-2xl bg-muted/50 p-4">
             {seats.map((s) => {
               const unavailable = unavailableSeatIds.includes(s.id);
               return (
@@ -276,7 +276,7 @@ export function BookingForm({
           </div>
         </div>
       ) : (
-        <p className="rounded-lg bg-muted p-3 text-sm">
+        <p className="rounded-2xl border bg-primary/5 p-4 text-sm font-medium">
           Full vehicle reservation · ₹{basePrice.toFixed(2)}
         </p>
       )}
@@ -308,7 +308,7 @@ export function BookingForm({
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl bg-muted/50 p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="font-semibold">
           Estimated total: ₹
           {(mode === "SEAT_BOOKING"
@@ -317,7 +317,7 @@ export function BookingForm({
           ).toFixed(2)}
         </p>
         <Button type="button" disabled={busy} onClick={submit}>
-          {busy ? "Booking…" : "Confirm booking"}
+          {busy ? "Booking…" : "Confirm & continue"}
         </Button>
       </div>
       {message ? (
