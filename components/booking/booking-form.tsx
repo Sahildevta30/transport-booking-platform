@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArmchairIcon, Car, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/analytics/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Seat = { id: string; seat_number: string; seat_type: string | null };
 
@@ -217,108 +219,181 @@ export function BookingForm({
     router.refresh();
   };
   const clock = `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`;
+  const urgent = mode === "SEAT_BOOKING" && selected.length > 0 && remaining > 0 && remaining <= 60;
   return (
-    <div className="space-y-7 rounded-[2rem] border bg-card p-5 shadow-xl shadow-black/5 sm:p-7">
-      <div>
-        <h2 className="text-2xl font-black tracking-tight">Complete your booking</h2>
-        <p className="text-sm text-muted-foreground">
-          Pick your booking style and passenger details. Selected seats stay held while you finish.
-        </p>
-        {mode === "SEAT_BOOKING" && selected.length > 0 ? (
-          <p className="mt-2 text-sm font-medium" aria-live="polite">
-            Seat lock expires in {clock}
+    <div className="space-y-8 rounded-[1.75rem] border border-border bg-card p-5 shadow-elevated sm:p-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-black tracking-tight">Complete your booking</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Pick your booking style and passenger details. Selected seats stay
+            held while you finish.
           </p>
+        </div>
+        {mode === "SEAT_BOOKING" && selected.length > 0 ? (
+          <div
+            aria-live="polite"
+            className={`flex shrink-0 items-center gap-2 self-start rounded-full px-3.5 py-1.5 text-sm font-bold ${
+              urgent
+                ? "bg-destructive/10 text-destructive"
+                : "bg-mode-seat/10 text-mode-seat"
+            }`}
+          >
+            <Clock className="h-4 w-4" aria-hidden />
+            Seats held for {clock}
+          </div>
         ) : null}
       </div>
+
       {bookingMode === "BOTH" ? (
-        <div className="flex gap-1.5 rounded-2xl bg-muted p-1.5">
-          <Button
+        <div role="tablist" aria-label="Booking style" className="inline-flex gap-1 rounded-full bg-muted p-1">
+          <button
             type="button"
+            role="tab"
+            aria-selected={mode === "SEAT_BOOKING"}
             disabled={busy}
-            variant={mode === "SEAT_BOOKING" ? "default" : "outline"}
             onClick={() => switchMode("SEAT_BOOKING")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+              mode === "SEAT_BOOKING"
+                ? "bg-background text-foreground shadow-card"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             Book seats
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
+            role="tab"
+            aria-selected={mode === "FULL_VEHICLE_BOOKING"}
             disabled={busy}
-            variant={mode === "FULL_VEHICLE_BOOKING" ? "default" : "outline"}
             onClick={() => switchMode("FULL_VEHICLE_BOOKING")}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+              mode === "FULL_VEHICLE_BOOKING"
+                ? "bg-background text-foreground shadow-card"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             Full vehicle
-          </Button>
+          </button>
         </div>
       ) : null}
+
       {mode === "SEAT_BOOKING" ? (
         <div>
-          <p className="mb-3 text-sm font-medium">
-            Select {passengerCount} seat(s)
-          </p>
-          <div className="flex flex-wrap gap-3 rounded-2xl bg-muted/50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold">
+              Select {passengerCount} seat{passengerCount === 1 ? "" : "s"}
+              <span className="ml-2 font-normal text-muted-foreground">
+                ({selected.length}/{passengerCount} selected)
+              </span>
+            </p>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 rounded-md border-2 border-border" aria-hidden />
+                Available
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 rounded-md bg-mode-seat" aria-hidden />
+                Selected
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 rounded-md bg-muted-foreground/30" aria-hidden />
+                Unavailable
+              </span>
+            </div>
+          </div>
+
+          <div
+            role="group"
+            aria-label="Seat map"
+            className="mt-4 grid grid-cols-4 gap-2.5 rounded-2xl bg-muted/50 p-4 sm:grid-cols-6 md:grid-cols-8"
+          >
             {seats.map((s) => {
               const unavailable = unavailableSeatIds.includes(s.id);
+              const isSelected = selected.includes(s.id);
               return (
-                <Button
+                <button
                   key={s.id}
                   type="button"
                   disabled={busy || unavailable}
-                  variant={selected.includes(s.id) ? "default" : "outline"}
                   onClick={() => toggle(s.id)}
+                  aria-pressed={isSelected}
+                  aria-label={`Seat ${s.seat_number}${unavailable ? ", unavailable" : isSelected ? ", selected" : ", available"}`}
                   title={unavailable ? "Unavailable" : undefined}
+                  className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-t-xl rounded-b-md border-2 text-xs font-bold transition-all disabled:cursor-not-allowed ${
+                    unavailable
+                      ? "border-transparent bg-muted-foreground/20 text-muted-foreground/60 line-through"
+                      : isSelected
+                        ? "border-mode-seat bg-mode-seat text-white shadow-card"
+                        : "border-border bg-background text-foreground hover:border-mode-seat/50 hover:bg-mode-seat/5"
+                  }`}
                 >
+                  <ArmchairIcon className="h-4 w-4" aria-hidden />
                   {s.seat_number}
-                  {unavailable ? " · Unavailable" : ""}
-                </Button>
+                </button>
               );
             })}
           </div>
         </div>
       ) : (
-        <p className="rounded-2xl border bg-primary/5 p-4 text-sm font-medium">
-          Full vehicle reservation · ₹{basePrice.toFixed(2)}
-        </p>
+        <div className="flex items-center gap-3 rounded-2xl border border-mode-full-vehicle/30 bg-mode-full-vehicle/5 p-5">
+          <Car className="h-6 w-6 shrink-0 text-mode-full-vehicle" aria-hidden />
+          <p className="text-sm font-semibold">
+            Full vehicle reservation · ₹{basePrice.toFixed(2)}
+          </p>
+        </div>
       )}
+
       <div className="space-y-4">
+        <p className="text-sm font-semibold">Passenger details</p>
         {passengers.map((p, i) => (
           <div key={i} className="grid gap-3 sm:grid-cols-2">
-            <Input
-              placeholder={`Passenger ${i + 1} full name`}
-              value={p.fullName}
-              onChange={(e) =>
-                setPassengers((x) =>
-                  x.map((v, j) =>
-                    j === i ? { ...v, fullName: e.target.value } : v,
-                  ),
-                )
-              }
-            />
-            <Input
-              placeholder="Phone number"
-              value={p.phone}
-              onChange={(e) =>
-                setPassengers((x) =>
-                  x.map((v, j) =>
-                    j === i ? { ...v, phone: e.target.value } : v,
-                  ),
-                )
-              }
-            />
+            <div className="space-y-1.5">
+              <Label htmlFor={`passenger-name-${i}`} className="text-xs text-muted-foreground">
+                Passenger {i + 1} full name
+              </Label>
+              <Input
+                id={`passenger-name-${i}`}
+                value={p.fullName}
+                onChange={(e) =>
+                  setPassengers((x) =>
+                    x.map((v, j) => (j === i ? { ...v, fullName: e.target.value } : v)),
+                  )
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`passenger-phone-${i}`} className="text-xs text-muted-foreground">
+                Phone number
+              </Label>
+              <Input
+                id={`passenger-phone-${i}`}
+                type="tel"
+                value={p.phone}
+                onChange={(e) =>
+                  setPassengers((x) =>
+                    x.map((v, j) => (j === i ? { ...v, phone: e.target.value } : v)),
+                  )
+                }
+              />
+            </div>
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-4 rounded-2xl bg-muted/50 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="font-semibold">
-          Estimated total: ₹
-          {(mode === "SEAT_BOOKING"
-            ? basePrice * passengerCount
-            : basePrice
-          ).toFixed(2)}
-        </p>
-        <Button type="button" disabled={busy} onClick={submit}>
+
+      <div className="flex flex-col gap-4 rounded-2xl bg-muted/50 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground">Estimated total</p>
+          <p className="text-2xl font-black">
+            ₹
+            {(mode === "SEAT_BOOKING" ? basePrice * passengerCount : basePrice).toFixed(2)}
+          </p>
+        </div>
+        <Button type="button" size="lg" disabled={busy} onClick={submit} className="w-full sm:w-auto">
           {busy ? "Booking…" : "Confirm & continue"}
         </Button>
       </div>
+
       {message ? (
         <p role="status" className="text-sm text-muted-foreground">
           {message}
