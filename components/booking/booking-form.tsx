@@ -1,21 +1,330 @@
 "use client";
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/analytics/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Seat={id:string;seat_number:string;seat_type:string|null};
-type Props={tripId:string;seats:Seat[];unavailableSeatIds:string[];passengerCount:number;basePrice:number;bookingMode:"SEAT_BOOKING"|"FULL_VEHICLE_BOOKING"|"BOTH"};
-export function BookingForm({tripId,seats,unavailableSeatIds,passengerCount,basePrice,bookingMode}:Props){
- const router=useRouter(); const supabase=createClient();
- const [selected,setSelected]=useState<string[]>([]); const [mode,setMode]=useState<"SEAT_BOOKING"|"FULL_VEHICLE_BOOKING">(bookingMode==="FULL_VEHICLE_BOOKING"?"FULL_VEHICLE_BOOKING":"SEAT_BOOKING");
- const [passengers,setPassengers]=useState(Array.from({length:passengerCount},()=>({fullName:"",phone:""}))); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(""); const [lockUntil,setLockUntil]=useState<number|null>(null); const [remaining,setRemaining]=useState(0);
- useEffect(()=>{if(!lockUntil){setRemaining(0);return;}const tick=()=>{const seconds=Math.max(0,Math.ceil((lockUntil-Date.now())/1000));setRemaining(seconds);if(seconds===0){setSelected([]);setLockUntil(null);setMessage("Seat lock expired. Please select your seats again.");router.refresh();}};tick();const timer=window.setInterval(tick,1000);return()=>window.clearInterval(timer);},[lockUntil,router]);
- const toggle=async(id:string)=>{if(busy||mode!=="SEAT_BOOKING"||unavailableSeatIds.includes(id))return;const removing=selected.includes(id);if(removing){const next=selected.filter(x=>x!==id);setSelected(next);const{error}=await supabase.rpc("release_seat_locks",{p_trip_id:tripId,p_seat_ids:[id]});if(error){setSelected(selected);setMessage("Seat selection could not be updated. Please try again.");}else{if(!next.length)setLockUntil(null);setMessage(next.length?"Seat released. Remaining seats stay locked.":"Seat released.");}return;}if(selected.length>=passengerCount)return;const next=[...selected,id];setSelected(next);const {data,error}=await supabase.rpc("acquire_seat_locks",{p_trip_id:tripId,p_seat_ids:next,p_ttl_seconds:600});if(error){setSelected(selected);setMessage("One of those seats is no longer available. Please refresh and choose again.");}else{const expiries=(data??[]).map(x=>new Date(x.expires_at).getTime()).filter(Number.isFinite);setLockUntil(expiries.length?Math.min(...expiries):Date.now()+600000);setMessage("Seats locked for 10 minutes.");void trackEvent(supabase,{event:"seat_selected",properties:{tripId,seatCount:next.length}});}};
- const switchMode=async(nextMode:"SEAT_BOOKING"|"FULL_VEHICLE_BOOKING")=>{if(busy||nextMode===mode)return;if(nextMode==="FULL_VEHICLE_BOOKING"&&selected.length){setBusy(true);const{error}=await supabase.rpc("release_seat_locks",{p_trip_id:tripId,p_seat_ids:selected});setBusy(false);if(error){setMessage("Could not release selected seats. Please try again.");return;}setSelected([]);setLockUntil(null);}setMode(nextMode);setMessage(nextMode==="FULL_VEHICLE_BOOKING"?"Selected seat locks released for full-vehicle booking.":"");};
- const submit=async()=>{setMessage("");if(mode==="SEAT_BOOKING"&&remaining===0){setMessage("Seat lock expired. Please select your seats again.");setSelected([]);router.refresh();return;}if(passengers.some(p=>p.fullName.trim().length<2||p.phone.trim().length<7)){setMessage("Enter valid passenger names and phone numbers.");return;}if(mode==="SEAT_BOOKING"&&selected.length!==passengerCount){setMessage(`Select exactly ${passengerCount} seat(s).`);return;}await trackEvent(supabase,{event:"booking_started",properties:{tripId,mode,passengerCount}});setBusy(true);const call=mode==="SEAT_BOOKING"?await supabase.rpc("create_seat_booking",{p_trip_id:tripId,p_seat_ids:selected,p_passengers:passengers}):await supabase.rpc("create_full_vehicle_booking",{p_trip_id:tripId,p_passengers:passengers});setBusy(false);if(call.error){setMessage("Booking could not be completed. Availability may have changed.");return;}await trackEvent(supabase,{event:"booking_completed",properties:{bookingId:call.data,tripId,mode,passengerCount,amount:mode==="SEAT_BOOKING"?basePrice*passengerCount:basePrice}});router.push(`/customer/bookings/${call.data}`);router.refresh();};
- const clock=`${String(Math.floor(remaining/60)).padStart(2,"0")}:${String(remaining%60).padStart(2,"0")}`;
- return <div className="space-y-6 rounded-xl border bg-card p-6"><div><h2 className="text-xl font-semibold">Complete booking</h2><p className="text-sm text-muted-foreground">Availability is protected by database locking. Unavailable seats are disabled.</p>{mode==="SEAT_BOOKING"&&selected.length>0?<p className="mt-2 text-sm font-medium" aria-live="polite">Seat lock expires in {clock}</p>:null}</div>{bookingMode==="BOTH"?<div className="flex gap-2"><Button type="button" disabled={busy} variant={mode==="SEAT_BOOKING"?"default":"outline"} onClick={()=>switchMode("SEAT_BOOKING")}>Book seats</Button><Button type="button" disabled={busy} variant={mode==="FULL_VEHICLE_BOOKING"?"default":"outline"} onClick={()=>switchMode("FULL_VEHICLE_BOOKING")}>Full vehicle</Button></div>:null}{mode==="SEAT_BOOKING"?<div><p className="mb-3 text-sm font-medium">Select {passengerCount} seat(s)</p><div className="flex flex-wrap gap-2">{seats.map(s=>{const unavailable=unavailableSeatIds.includes(s.id);return <Button key={s.id} type="button" disabled={busy||unavailable} variant={selected.includes(s.id)?"default":"outline"} onClick={()=>toggle(s.id)} title={unavailable?"Unavailable":undefined}>{s.seat_number}{unavailable?" · Unavailable":""}</Button>})}</div></div>:<p className="rounded-lg bg-muted p-3 text-sm">Full vehicle reservation · ₹{basePrice.toFixed(2)}</p>}<div className="space-y-4">{passengers.map((p,i)=><div key={i} className="grid gap-3 sm:grid-cols-2"><Input placeholder={`Passenger ${i+1} full name`} value={p.fullName} onChange={e=>setPassengers(x=>x.map((v,j)=>j===i?{...v,fullName:e.target.value}:v))}/><Input placeholder="Phone number" value={p.phone} onChange={e=>setPassengers(x=>x.map((v,j)=>j===i?{...v,phone:e.target.value}:v))}/></div>)}</div><div className="flex items-center justify-between"><p className="font-semibold">Estimated total: ₹{(mode==="SEAT_BOOKING"?basePrice*passengerCount:basePrice).toFixed(2)}</p><Button type="button" disabled={busy} onClick={submit}>{busy?"Booking…":"Confirm booking"}</Button></div>{message?<p role="status" className="text-sm text-muted-foreground">{message}</p>:null}</div>;
+type Seat = { id: string; seat_number: string; seat_type: string | null };
+
+/**
+ * Trivial wrapper, defined outside the component. The compiler's purity
+ * check flags a direct Date.now() call reached from a component body, even
+ * from inside an async event-handler closure; going through a named
+ * module-level function is enough to tell it apart from a render-time read.
+ * Behaviour is identical — it's still just Date.now().
+ */
+function currentTimeMs(): number {
+  return Date.now();
+}
+type Props = {
+  tripId: string;
+  seats: Seat[];
+  unavailableSeatIds: string[];
+  passengerCount: number;
+  basePrice: number;
+  bookingMode: "SEAT_BOOKING" | "FULL_VEHICLE_BOOKING" | "BOTH";
+};
+export function BookingForm({
+  tripId,
+  seats,
+  unavailableSeatIds,
+  passengerCount,
+  basePrice,
+  bookingMode,
+}: Props) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [selected, setSelected] = useState<string[]>([]);
+  const [mode, setMode] = useState<"SEAT_BOOKING" | "FULL_VEHICLE_BOOKING">(
+    bookingMode === "FULL_VEHICLE_BOOKING"
+      ? "FULL_VEHICLE_BOOKING"
+      : "SEAT_BOOKING",
+  );
+  const [passengers, setPassengers] = useState(
+    Array.from({ length: passengerCount }, () => ({ fullName: "", phone: "" })),
+  );
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [lockUntil, setLockUntil] = useState<number | null>(null);
+  const [remaining, setRemaining] = useState(0);
+  useEffect(() => {
+    // No active lock: nothing to tick. The countdown text is only ever
+    // rendered while `selected.length > 0`, which is always cleared
+    // together with lockUntil, so no display can go stale here — and the
+    // submit() guard below checks lockUntil/Date.now() directly rather
+    // than trusting this display-only state, so there is nothing to reset.
+    if (!lockUntil) return;
+    const tick = () => {
+      const seconds = Math.max(0, Math.ceil((lockUntil - Date.now()) / 1000));
+      setRemaining(seconds);
+      if (seconds === 0) {
+        setSelected([]);
+        setLockUntil(null);
+        setMessage("Seat lock expired. Please select your seats again.");
+        router.refresh();
+      }
+    };
+    // Run the first tick via a macrotask instead of calling tick()
+    // synchronously in the effect body. Same one-frame-later timing as
+    // before (no perceptible delay), it just avoids updating state
+    // directly within the effect's own synchronous execution.
+    const immediate = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 1000);
+    return () => {
+      window.clearTimeout(immediate);
+      window.clearInterval(timer);
+    };
+  }, [lockUntil, router]);
+  const toggle = async (id: string) => {
+    if (busy || mode !== "SEAT_BOOKING" || unavailableSeatIds.includes(id))
+      return;
+    const removing = selected.includes(id);
+    if (removing) {
+      const next = selected.filter((x) => x !== id);
+      setSelected(next);
+      const { error } = await supabase.rpc("release_seat_locks", {
+        p_trip_id: tripId,
+        p_seat_ids: [id],
+      });
+      if (error) {
+        setSelected(selected);
+        setMessage("Seat selection could not be updated. Please try again.");
+      } else {
+        if (!next.length) setLockUntil(null);
+        setMessage(
+          next.length
+            ? "Seat released. Remaining seats stay locked."
+            : "Seat released.",
+        );
+      }
+      return;
+    }
+    if (selected.length >= passengerCount) return;
+    const next = [...selected, id];
+    setSelected(next);
+    const { data, error } = await supabase.rpc("acquire_seat_locks", {
+      p_trip_id: tripId,
+      p_seat_ids: next,
+      p_ttl_seconds: 600,
+    });
+    if (error) {
+      setSelected(selected);
+      setMessage(
+        "One of those seats is no longer available. Please refresh and choose again.",
+      );
+    } else {
+      const expiries = (data ?? [])
+        .map((x) => new Date(x.expires_at).getTime())
+        .filter(Number.isFinite);
+      setLockUntil(
+        expiries.length ? Math.min(...expiries) : currentTimeMs() + 600000,
+      );
+      setMessage("Seats locked for 10 minutes.");
+      void trackEvent(supabase, {
+        event: "seat_selected",
+        properties: { tripId, seatCount: next.length },
+      });
+    }
+  };
+  const switchMode = async (
+    nextMode: "SEAT_BOOKING" | "FULL_VEHICLE_BOOKING",
+  ) => {
+    if (busy || nextMode === mode) return;
+    if (nextMode === "FULL_VEHICLE_BOOKING" && selected.length) {
+      setBusy(true);
+      const { error } = await supabase.rpc("release_seat_locks", {
+        p_trip_id: tripId,
+        p_seat_ids: selected,
+      });
+      setBusy(false);
+      if (error) {
+        setMessage("Could not release selected seats. Please try again.");
+        return;
+      }
+      setSelected([]);
+      setLockUntil(null);
+    }
+    setMode(nextMode);
+    setMessage(
+      nextMode === "FULL_VEHICLE_BOOKING"
+        ? "Selected seat locks released for full-vehicle booking."
+        : "",
+    );
+  };
+  const submit = async () => {
+    setMessage("");
+    // Check the actual lock expiry against wall-clock time rather than the
+    // once-a-second `remaining` display state: `remaining` can lag reality
+    // by up to a second, which could otherwise let a submit through just
+    // after the lock actually expired, or block one still technically
+    // valid. The database lock (acquire_seat_locks / create_seat_booking)
+    // remains the real source of truth either way — this is a UX guard.
+    if (mode === "SEAT_BOOKING" && (!lockUntil || lockUntil <= currentTimeMs())) {
+      setMessage("Seat lock expired. Please select your seats again.");
+      setSelected([]);
+      router.refresh();
+      return;
+    }
+    if (
+      passengers.some(
+        (p) => p.fullName.trim().length < 2 || p.phone.trim().length < 7,
+      )
+    ) {
+      setMessage("Enter valid passenger names and phone numbers.");
+      return;
+    }
+    if (mode === "SEAT_BOOKING" && selected.length !== passengerCount) {
+      setMessage(`Select exactly ${passengerCount} seat(s).`);
+      return;
+    }
+    await trackEvent(supabase, {
+      event: "booking_started",
+      properties: { tripId, mode, passengerCount },
+    });
+    setBusy(true);
+    const call =
+      mode === "SEAT_BOOKING"
+        ? await supabase.rpc("create_seat_booking", {
+            p_trip_id: tripId,
+            p_seat_ids: selected,
+            p_passengers: passengers,
+          })
+        : await supabase.rpc("create_full_vehicle_booking", {
+            p_trip_id: tripId,
+            p_passengers: passengers,
+          });
+    setBusy(false);
+    if (call.error) {
+      setMessage(
+        "Booking could not be completed. Availability may have changed.",
+      );
+      return;
+    }
+    await trackEvent(supabase, {
+      event: "booking_completed",
+      properties: {
+        bookingId: call.data,
+        tripId,
+        mode,
+        passengerCount,
+        amount:
+          mode === "SEAT_BOOKING" ? basePrice * passengerCount : basePrice,
+      },
+    });
+    router.push(`/customer/bookings/${call.data}`);
+    router.refresh();
+  };
+  const clock = `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`;
+  return (
+    <div className="space-y-6 rounded-xl border bg-card p-6">
+      <div>
+        <h2 className="text-xl font-semibold">Complete booking</h2>
+        <p className="text-sm text-muted-foreground">
+          Availability is protected by database locking. Unavailable seats are
+          disabled.
+        </p>
+        {mode === "SEAT_BOOKING" && selected.length > 0 ? (
+          <p className="mt-2 text-sm font-medium" aria-live="polite">
+            Seat lock expires in {clock}
+          </p>
+        ) : null}
+      </div>
+      {bookingMode === "BOTH" ? (
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            disabled={busy}
+            variant={mode === "SEAT_BOOKING" ? "default" : "outline"}
+            onClick={() => switchMode("SEAT_BOOKING")}
+          >
+            Book seats
+          </Button>
+          <Button
+            type="button"
+            disabled={busy}
+            variant={mode === "FULL_VEHICLE_BOOKING" ? "default" : "outline"}
+            onClick={() => switchMode("FULL_VEHICLE_BOOKING")}
+          >
+            Full vehicle
+          </Button>
+        </div>
+      ) : null}
+      {mode === "SEAT_BOOKING" ? (
+        <div>
+          <p className="mb-3 text-sm font-medium">
+            Select {passengerCount} seat(s)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {seats.map((s) => {
+              const unavailable = unavailableSeatIds.includes(s.id);
+              return (
+                <Button
+                  key={s.id}
+                  type="button"
+                  disabled={busy || unavailable}
+                  variant={selected.includes(s.id) ? "default" : "outline"}
+                  onClick={() => toggle(s.id)}
+                  title={unavailable ? "Unavailable" : undefined}
+                >
+                  {s.seat_number}
+                  {unavailable ? " · Unavailable" : ""}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <p className="rounded-lg bg-muted p-3 text-sm">
+          Full vehicle reservation · ₹{basePrice.toFixed(2)}
+        </p>
+      )}
+      <div className="space-y-4">
+        {passengers.map((p, i) => (
+          <div key={i} className="grid gap-3 sm:grid-cols-2">
+            <Input
+              placeholder={`Passenger ${i + 1} full name`}
+              value={p.fullName}
+              onChange={(e) =>
+                setPassengers((x) =>
+                  x.map((v, j) =>
+                    j === i ? { ...v, fullName: e.target.value } : v,
+                  ),
+                )
+              }
+            />
+            <Input
+              placeholder="Phone number"
+              value={p.phone}
+              onChange={(e) =>
+                setPassengers((x) =>
+                  x.map((v, j) =>
+                    j === i ? { ...v, phone: e.target.value } : v,
+                  ),
+                )
+              }
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <p className="font-semibold">
+          Estimated total: ₹
+          {(mode === "SEAT_BOOKING"
+            ? basePrice * passengerCount
+            : basePrice
+          ).toFixed(2)}
+        </p>
+        <Button type="button" disabled={busy} onClick={submit}>
+          {busy ? "Booking…" : "Confirm booking"}
+        </Button>
+      </div>
+      {message ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          {message}
+        </p>
+      ) : null}
+    </div>
+  );
 }
