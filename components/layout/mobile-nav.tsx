@@ -36,15 +36,15 @@ export function MobileNav({ links }: { links: readonly MobileNavLink[] }) {
       {open ? (
         <nav
           id={panelId}
-          className="absolute inset-x-0 top-16 z-30 border-b border-border bg-background shadow-sm"
+          className="absolute inset-x-3 top-[4.5rem] z-30 overflow-hidden rounded-3xl border border-border bg-background/95 shadow-2xl backdrop-blur-2xl"
         >
-          <ul className="flex flex-col gap-1 p-4">
+          <ul className="flex flex-col gap-1.5 p-3">
             {links.map(({ href, label }) => (
               <li key={href}>
                 <Link
                   href={href}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   {label}
                 </Link>
