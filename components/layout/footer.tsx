@@ -32,17 +32,20 @@ export function SiteFooter() {
     <footer className="mt-auto border-t border-border bg-foreground text-background">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-5 lg:px-8">
         <div className="md:col-span-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-violet-500 text-white text-sm font-black">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-accent text-white text-sm font-black">
             TB
           </span>
           <p className="mt-4 max-w-sm text-sm text-background/60">
-            One place for seats, cabs and whole-vehicle travel — built for customers and transport partners.
+            One place for seats, cabs and whole-vehicle travel — built for
+            customers and transport partners.
           </p>
         </div>
 
         {FOOTER_SECTIONS.map((section) => (
           <div key={section.title}>
-            <h3 className="text-sm font-bold text-background">{section.title}</h3>
+            <h3 className="text-sm font-bold text-background">
+              {section.title}
+            </h3>
             <ul className="mt-4 space-y-2">
               {section.links.map((link) => (
                 <li key={link.href}>
