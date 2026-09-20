@@ -27,18 +27,18 @@ export const ADMIN_NAV = [
 
 export function AdminSidebar() {
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-border bg-muted/20 md:block">
-      <div className="p-6">
-        <Link href="/admin/dashboard" className="font-semibold">
-          TransitBook <span className="text-muted-foreground">Admin</span>
+    <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block">
+      <div className="border-b border-border p-6">
+        <Link href="/admin/dashboard" className="text-sm font-black tracking-tight">
+          TransitBook <span className="font-normal text-muted-foreground">Partner</span>
         </Link>
       </div>
-      <nav aria-label="Admin" className="flex flex-col gap-1 px-3 pb-6">
+      <nav aria-label="Admin" className="flex flex-col gap-0.5 px-3 py-4">
         {ADMIN_NAV.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <Icon className="h-4 w-4" />
             {label}
