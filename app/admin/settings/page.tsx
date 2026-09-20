@@ -1,1 +1,67 @@
-import type {Metadata} from "next";import {Building2,ShieldCheck,Users} from "lucide-react";import {createClient} from "@/lib/supabase/server";export const metadata:Metadata={title:"Partner settings"};export default async function Page(){const s=await createClient();const {data:{user}}=await s.auth.getUser();const {data:m}=user?await s.from("organization_memberships").select("organization_id,role").eq("user_id",user.id):{data:[]};const ids=(m??[]).map(x=>x.organization_id);const {data:o}=ids.length?await s.from("organizations").select("id,name").in("id",ids):{data:[]};const map=new Map((o??[]).map(x=>[x.id,x.name]));return <div className="space-y-7"><div><p className="text-sm font-semibold text-primary">Partner workspace</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Settings</h1><p className="mt-2 text-muted-foreground">Organization identity and access overview.</p></div><div className="grid gap-4 md:grid-cols-2"><section className="rounded-2xl border bg-card p-6 shadow-sm"><Building2 className="mb-4 h-6 w-6 text-primary"/><h2 className="font-semibold">Organizations</h2><div className="mt-4 space-y-3">{(m??[]).map(x=><div key={x.organization_id} className="rounded-xl bg-muted/50 p-4"><p className="font-medium">{map.get(x.organization_id)??"Organization"}</p><p className="mt-1 text-sm text-muted-foreground">Your role: {x.role}</p></div>)}</div></section><section className="rounded-2xl border bg-card p-6 shadow-sm"><ShieldCheck className="mb-4 h-6 w-6 text-primary"/><h2 className="font-semibold">Access boundaries</h2><p className="mt-2 text-sm text-muted-foreground">Fleet, routes, trips, customers and booking views are scoped to your partner organization. Platform-wide supervision cannot modify partner operations.</p><div className="mt-5 flex items-center gap-2 rounded-xl bg-muted/50 p-4 text-sm"><Users className="h-4 w-4"/>Team management will use organization roles without exposing other partners.</div></section></div></div>}
+import type { Metadata } from "next";
+import { Building2, ShieldCheck, Users } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+export const metadata: Metadata = { title: "Partner settings" };
+export default async function Page() {
+  const s = await createClient();
+  const {
+    data: { user },
+  } = await s.auth.getUser();
+  const { data: m } = user
+    ? await s
+        .from("organization_memberships")
+        .select("organization_id,role")
+        .eq("user_id", user.id)
+    : { data: [] };
+  const ids = (m ?? []).map((x) => x.organization_id);
+  const { data: o } = ids.length
+    ? await s.from("organizations").select("id,name").in("id", ids)
+    : { data: [] };
+  const map = new Map((o ?? []).map((x) => [x.id, x.name]));
+  return (
+    <div className="space-y-7">
+      <div>
+        <p className="text-sm font-semibold text-primary">Partner workspace</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Settings</h1>
+        <p className="mt-2 text-muted-foreground">
+          Organization identity and access overview.
+        </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className="rounded-2xl border bg-card p-6 shadow-card">
+          <Building2 className="mb-4 h-6 w-6 text-primary" />
+          <h2 className="font-semibold">Organizations</h2>
+          <div className="mt-4 space-y-3">
+            {(m ?? []).map((x) => (
+              <div
+                key={x.organization_id}
+                className="rounded-xl bg-muted/50 p-4"
+              >
+                <p className="font-medium">
+                  {map.get(x.organization_id) ?? "Organization"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Your role: {x.role}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-2xl border bg-card p-6 shadow-card">
+          <ShieldCheck className="mb-4 h-6 w-6 text-primary" />
+          <h2 className="font-semibold">Access boundaries</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Fleet, routes, trips, customers and booking views are scoped to your
+            partner organization. Platform-wide supervision cannot modify
+            partner operations.
+          </p>
+          <div className="mt-5 flex items-center gap-2 rounded-xl bg-muted/50 p-4 text-sm">
+            <Users className="h-4 w-4" />
+            Team management will use organization roles without exposing other
+            partners.
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

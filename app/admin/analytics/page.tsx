@@ -1,1 +1,83 @@
-import type {Metadata} from "next";import {createClient} from "@/lib/supabase/server";export const metadata:Metadata={title:"Partner analytics"};export default async function AnalyticsPage(){const s=await createClient();const {data:{user}}=await s.auth.getUser();const {data:m}=user?await s.from("organization_memberships").select("organization_id").eq("user_id",user.id):{data:[]};const org=(m??[]).map(x=>x.organization_id);const {data:v}=org.length?await s.from("vehicles").select("id,status").in("organization_id",org):{data:[]};const vids=(v??[]).map(x=>x.id);const {data:t}=vids.length?await s.from("trips").select("id,status,vehicle_id").in("vehicle_id",vids):{data:[]};const tids=(t??[]).map(x=>x.id);const {data:b}=tids.length?await s.from("bookings").select("id,status,amount,passenger_count").in("trip_id",tids):{data:[]};const confirmed=(b??[]).filter(x=>x.status==="CONFIRMED"||x.status==="COMPLETED");return <div className="space-y-7"><div><p className="text-sm font-semibold text-primary">Your organization</p><h1 className="mt-1 text-3xl font-semibold">Analytics</h1><p className="mt-2 text-muted-foreground">Operational metrics calculated only from your fleet and bookings.</p></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><M l="Vehicles" v={(v??[]).length}/><M l="Trips" v={(t??[]).length}/><M l="Confirmed bookings" v={confirmed.length}/><M l="Confirmed value" v={"₹"+confirmed.reduce((n,x)=>n+Number(x.amount),0).toFixed(0)}/></div><div className="rounded-2xl border bg-card p-6"><h2 className="font-semibold">Fleet activity</h2><div className="mt-5 grid gap-4 sm:grid-cols-3"><M l="Active vehicles" v={(v??[]).filter(x=>x.status==="active").length}/><M l="Trips in progress" v={(t??[]).filter(x=>x.status==="in_progress").length}/><M l="Passengers booked" v={confirmed.reduce((n,x)=>n+x.passenger_count,0)}/></div></div></div>}function M({l,v}:{l:string;v:number|string}){return <div className="rounded-xl border bg-card p-5"><p className="text-sm text-muted-foreground">{l}</p><p className="mt-2 text-3xl font-semibold">{v}</p></div>}
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+export const metadata: Metadata = { title: "Partner analytics" };
+export default async function AnalyticsPage() {
+  const s = await createClient();
+  const {
+    data: { user },
+  } = await s.auth.getUser();
+  const { data: m } = user
+    ? await s
+        .from("organization_memberships")
+        .select("organization_id")
+        .eq("user_id", user.id)
+    : { data: [] };
+  const org = (m ?? []).map((x) => x.organization_id);
+  const { data: v } = org.length
+    ? await s.from("vehicles").select("id,status").in("organization_id", org)
+    : { data: [] };
+  const vids = (v ?? []).map((x) => x.id);
+  const { data: t } = vids.length
+    ? await s
+        .from("trips")
+        .select("id,status,vehicle_id")
+        .in("vehicle_id", vids)
+    : { data: [] };
+  const tids = (t ?? []).map((x) => x.id);
+  const { data: b } = tids.length
+    ? await s
+        .from("bookings")
+        .select("id,status,amount,passenger_count")
+        .in("trip_id", tids)
+    : { data: [] };
+  const confirmed = (b ?? []).filter(
+    (x) => x.status === "CONFIRMED" || x.status === "COMPLETED",
+  );
+  return (
+    <div className="space-y-7">
+      <div>
+        <p className="text-sm font-semibold text-primary">Your organization</p>
+        <h1 className="mt-1 text-3xl font-semibold">Analytics</h1>
+        <p className="mt-2 text-muted-foreground">
+          Operational metrics calculated only from your fleet and bookings.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <M l="Vehicles" v={(v ?? []).length} />
+        <M l="Trips" v={(t ?? []).length} />
+        <M l="Confirmed bookings" v={confirmed.length} />
+        <M
+          l="Confirmed value"
+          v={
+            "₹" + confirmed.reduce((n, x) => n + Number(x.amount), 0).toFixed(0)
+          }
+        />
+      </div>
+      <div className="rounded-2xl border bg-card p-6 shadow-card">
+        <h2 className="font-semibold">Fleet activity</h2>
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <M
+            l="Active vehicles"
+            v={(v ?? []).filter((x) => x.status === "active").length}
+          />
+          <M
+            l="Trips in progress"
+            v={(t ?? []).filter((x) => x.status === "in_progress").length}
+          />
+          <M
+            l="Passengers booked"
+            v={confirmed.reduce((n, x) => n + x.passenger_count, 0)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+function M({ l, v }: { l: string; v: number | string }) {
+  return (
+    <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <p className="text-sm text-muted-foreground">{l}</p>
+      <p className="mt-2 text-3xl font-semibold">{v}</p>
+    </div>
+  );
+}

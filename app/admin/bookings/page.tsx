@@ -2,16 +2,167 @@ import type { Metadata } from "next";
 import { Ticket, UsersRound, IndianRupee } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Partner bookings" };
-export default async function Page(){
- const supabase=await createClient(); const {data:{user}}=await supabase.auth.getUser();
- const {data:memberships}=user?await supabase.from("organization_memberships").select("organization_id").eq("user_id",user.id):{data:[]};
- const orgIds=(memberships??[]).map(x=>x.organization_id);
- const {data:vehicles}=orgIds.length?await supabase.from("vehicles").select("id,label").in("organization_id",orgIds):{data:[]}; const vehicleIds=(vehicles??[]).map(v=>v.id);
- const {data:trips}=vehicleIds.length?await supabase.from("trips").select("id,vehicle_id,departure_at").in("vehicle_id",vehicleIds):{data:[]}; const tripIds=(trips??[]).map(t=>t.id);
- const {data:bookings,error}=tripIds.length?await supabase.from("bookings").select("id,trip_id,user_id,status,booking_mode,passenger_count,amount,created_at").in("trip_id",tripIds).order("created_at",{ascending:false}):{data:[],error:null};
- const tripMap=new Map((trips??[]).map(t=>[t.id,t])); const vehicleMap=new Map((vehicles??[]).map(v=>[v.id,v.label]));
- return <div className="space-y-7"><div><p className="text-sm font-semibold text-primary">Partner operations</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Bookings</h1><p className="mt-2 text-muted-foreground">Customer bookings for your organization only.</p></div>
- <div className="grid gap-4 sm:grid-cols-3"><Metric icon={Ticket} label="Total bookings" value={(bookings??[]).length}/><Metric icon={UsersRound} label="Passengers" value={(bookings??[]).reduce((n,b)=>n+b.passenger_count,0)}/><Metric icon={IndianRupee} label="Booking value" value={"₹"+(bookings??[]).reduce((n,b)=>n+Number(b.amount),0).toFixed(0)}/></div>
- <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">{error?<p className="p-6 text-destructive">Bookings could not be loaded.</p>:!bookings?.length?<div className="p-12 text-center text-muted-foreground"><Ticket className="mx-auto mb-3 h-9 w-9"/><p>No bookings for your fleet yet.</p></div>:<div className="overflow-x-auto"><table className="w-full min-w-[850px] text-sm"><thead className="border-b bg-muted/40 text-left"><tr>{["Booking","Vehicle","Departure","Mode","Passengers","Amount","Status"].map(x=><th key={x} className="px-5 py-3">{x}</th>)}</tr></thead><tbody className="divide-y">{bookings.map(b=>{const t=tripMap.get(b.trip_id);return <tr key={b.id} className="hover:bg-muted/30"><td className="px-5 py-4 font-mono text-xs">{b.id.slice(0,8)}…</td><td className="px-5 py-4 font-medium">{t?vehicleMap.get(t.vehicle_id)??"—":"—"}</td><td className="px-5 py-4">{t?new Date(t.departure_at).toLocaleString():"—"}</td><td className="px-5 py-4">{b.booking_mode.replaceAll("_"," ")}</td><td className="px-5 py-4">{b.passenger_count}</td><td className="px-5 py-4">₹{Number(b.amount).toFixed(2)}</td><td className="px-5 py-4"><span className="rounded-full border px-2.5 py-1 text-xs capitalize">{b.status.toLowerCase().replaceAll("_"," ")}</span></td></tr>})}</tbody></table></div>}</section></div>
+// Same status vocabulary and colors as the customer-facing My Bookings
+// page (app/customer/bookings/page.tsx) -- a booking's status should
+// read the same color everywhere it appears in the product.
+const STATUS_STYLE: Record<string, string> = {
+  CONFIRMED: "bg-success/10 text-success",
+  PENDING: "bg-warning/10 text-warning",
+  COMPLETED: "bg-primary/10 text-primary",
+  CANCELLED: "bg-muted-foreground/10 text-muted-foreground",
+  REFUND_PENDING: "bg-warning/10 text-warning",
+  REFUNDED: "bg-muted-foreground/10 text-muted-foreground",
+};
+
+export default async function Page() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: memberships } = user
+    ? await supabase
+        .from("organization_memberships")
+        .select("organization_id")
+        .eq("user_id", user.id)
+    : { data: [] };
+  const orgIds = (memberships ?? []).map((x) => x.organization_id);
+  const { data: vehicles } = orgIds.length
+    ? await supabase
+        .from("vehicles")
+        .select("id,label")
+        .in("organization_id", orgIds)
+    : { data: [] };
+  const vehicleIds = (vehicles ?? []).map((v) => v.id);
+  const { data: trips } = vehicleIds.length
+    ? await supabase
+        .from("trips")
+        .select("id,vehicle_id,departure_at")
+        .in("vehicle_id", vehicleIds)
+    : { data: [] };
+  const tripIds = (trips ?? []).map((t) => t.id);
+  const { data: bookings, error } = tripIds.length
+    ? await supabase
+        .from("bookings")
+        .select(
+          "id,trip_id,user_id,status,booking_mode,passenger_count,amount,created_at",
+        )
+        .in("trip_id", tripIds)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+  const tripMap = new Map((trips ?? []).map((t) => [t.id, t]));
+  const vehicleMap = new Map((vehicles ?? []).map((v) => [v.id, v.label]));
+  return (
+    <div className="space-y-7">
+      <div>
+        <p className="text-sm font-semibold text-primary">Partner operations</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Bookings</h1>
+        <p className="mt-2 text-muted-foreground">
+          Customer bookings for your organization only.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Metric
+          icon={Ticket}
+          label="Total bookings"
+          value={(bookings ?? []).length}
+        />
+        <Metric
+          icon={UsersRound}
+          label="Passengers"
+          value={(bookings ?? []).reduce((n, b) => n + b.passenger_count, 0)}
+        />
+        <Metric
+          icon={IndianRupee}
+          label="Booking value"
+          value={
+            "₹" +
+            (bookings ?? [])
+              .reduce((n, b) => n + Number(b.amount), 0)
+              .toFixed(0)
+          }
+        />
+      </div>
+      <section className="overflow-hidden rounded-2xl border bg-card shadow-card">
+        {error ? (
+          <p className="p-6 text-destructive">Bookings could not be loaded.</p>
+        ) : !bookings?.length ? (
+          <div className="p-12 text-center text-muted-foreground">
+            <Ticket className="mx-auto mb-3 h-9 w-9" />
+            <p>No bookings for your fleet yet.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[850px] text-sm">
+              <thead className="border-b bg-muted/40 text-left">
+                <tr>
+                  {[
+                    "Booking",
+                    "Vehicle",
+                    "Departure",
+                    "Mode",
+                    "Passengers",
+                    "Amount",
+                    "Status",
+                  ].map((x) => (
+                    <th key={x} className="px-5 py-3">
+                      {x}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {bookings.map((b) => {
+                  const t = tripMap.get(b.trip_id);
+                  return (
+                    <tr key={b.id} className="hover:bg-muted/30">
+                      <td className="px-5 py-4 font-mono text-xs">
+                        {b.id.slice(0, 8)}…
+                      </td>
+                      <td className="px-5 py-4 font-medium">
+                        {t ? (vehicleMap.get(t.vehicle_id) ?? "—") : "—"}
+                      </td>
+                      <td className="px-5 py-4">
+                        {t ? new Date(t.departure_at).toLocaleString() : "—"}
+                      </td>
+                      <td className="px-5 py-4">
+                        {b.booking_mode.replaceAll("_", " ")}
+                      </td>
+                      <td className="px-5 py-4">{b.passenger_count}</td>
+                      <td className="px-5 py-4">
+                        ₹{Number(b.amount).toFixed(2)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_STYLE[b.status] ?? "bg-muted text-muted-foreground"}`}
+                        >
+                          {b.status.replaceAll("_", " ")}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
-function Metric({icon:Icon,label,value}:{icon:typeof Ticket;label:string;value:number|string}){return <div className="rounded-2xl border bg-card p-5 shadow-sm"><Icon className="mb-3 h-5 w-5 text-primary"/><p className="text-2xl font-semibold">{value}</p><p className="text-sm text-muted-foreground">{label}</p></div>}
+function Metric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Ticket;
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <Icon className="mb-3 h-5 w-5 text-primary" />
+      <p className="text-2xl font-semibold">{value}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
+}
