@@ -8,8 +8,22 @@ import { Label } from "@/components/ui/label";
  * already reads (from, to, date, passengers) — see
  * app/(public)/search/page.tsx. No JavaScript required for the search
  * itself; this works with JS disabled.
+ *
+ * Shared between the homepage hero and the /search page itself so both
+ * always agree on the exact same field set and behaviour — defaults let
+ * /search re-render the form pre-filled with the visitor's current query.
  */
-export function RouteSearchForm() {
+export function RouteSearchForm({
+  defaultFrom = "",
+  defaultTo = "",
+  defaultDate = "",
+  defaultPassengers = 1,
+}: {
+  defaultFrom?: string;
+  defaultTo?: string;
+  defaultDate?: string;
+  defaultPassengers?: number;
+}) {
   return (
     <form
       action="/search"
@@ -19,7 +33,14 @@ export function RouteSearchForm() {
         <Label htmlFor="from" className="text-xs font-semibold text-muted-foreground">
           From
         </Label>
-        <Input id="from" name="from" placeholder="Departure city" aria-label="From" required />
+        <Input
+          id="from"
+          name="from"
+          defaultValue={defaultFrom}
+          placeholder="Departure city"
+          aria-label="From"
+          required
+        />
       </div>
 
       <div className="hidden items-center justify-center pb-2.5 lg:flex" aria-hidden>
@@ -30,14 +51,21 @@ export function RouteSearchForm() {
         <Label htmlFor="to" className="text-xs font-semibold text-muted-foreground">
           To
         </Label>
-        <Input id="to" name="to" placeholder="Destination city" aria-label="To" required />
+        <Input
+          id="to"
+          name="to"
+          defaultValue={defaultTo}
+          placeholder="Destination city"
+          aria-label="To"
+          required
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="date" className="text-xs font-semibold text-muted-foreground">
           Date
         </Label>
-        <Input id="date" name="date" type="date" aria-label="Travel date" />
+        <Input id="date" name="date" type="date" defaultValue={defaultDate} aria-label="Travel date" />
       </div>
 
       <div className="space-y-1.5">
@@ -50,7 +78,7 @@ export function RouteSearchForm() {
           type="number"
           min={1}
           max={50}
-          defaultValue={1}
+          defaultValue={defaultPassengers}
           aria-label="Number of travellers"
         />
       </div>
