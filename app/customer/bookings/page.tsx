@@ -86,7 +86,7 @@ export default async function CustomerBookingsPage() {
             <Link
               key={b.id}
               href={`/customer/bookings/${b.id}`}
-              className="block rounded-[1.5rem] border bg-card p-6 shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-elevated"
+              className="block rounded-[1.5rem] border bg-card p-6 shadow-card outline-none transition duration-300 hover:-translate-y-0.5 hover:shadow-elevated focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">

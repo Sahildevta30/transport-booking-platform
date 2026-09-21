@@ -33,7 +33,7 @@ export function BookingModeTabs({ routePanel }: { routePanel: ReactNode }) {
           aria-selected={mode === "route"}
           onClick={() => setMode("route")}
           className={cn(
-            "flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+            "flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
             mode === "route"
               ? "bg-background text-foreground shadow-card"
               : "text-muted-foreground hover:text-foreground",
@@ -48,7 +48,7 @@ export function BookingModeTabs({ routePanel }: { routePanel: ReactNode }) {
           aria-selected={mode === "rental"}
           onClick={() => setMode("rental")}
           className={cn(
-            "flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+            "flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
             mode === "rental"
               ? "bg-background text-foreground shadow-card"
               : "text-muted-foreground hover:text-foreground",

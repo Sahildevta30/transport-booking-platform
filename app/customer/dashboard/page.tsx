@@ -92,7 +92,7 @@ export default async function CustomerDashboardPage() {
             <Link
               href={href}
               key={label}
-              className="group rounded-2xl border bg-card p-5 shadow-card transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+              className="group rounded-2xl border bg-card p-5 shadow-card outline-none transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <div className="flex items-center justify-between">
                 <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -157,7 +157,7 @@ export default async function CustomerDashboardPage() {
               <Link
                 key={b.id}
                 href={`/customer/bookings/${b.id}`}
-                className="flex items-center justify-between rounded-2xl border bg-card p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-elevated"
+                className="flex items-center justify-between rounded-2xl border bg-card p-5 shadow-card outline-none transition hover:-translate-y-0.5 hover:shadow-elevated focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <div>
                   <p className="font-semibold">

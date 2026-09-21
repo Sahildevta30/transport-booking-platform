@@ -66,7 +66,7 @@ function FilterChip({
     <Link
       href={href}
       className={cn(
-        "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
+        "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-background text-foreground hover:border-primary/40",

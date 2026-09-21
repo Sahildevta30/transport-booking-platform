@@ -174,7 +174,7 @@ export default async function HomePage({
               <Link
                 key={type.name + type.bookingMode}
                 href={`/search?type=${encodeURIComponent(type.name)}`}
-                className="group rounded-[1.5rem] border border-border bg-card p-6 shadow-card transition hover:-translate-y-1 hover:shadow-elevated"
+                className="group rounded-[1.5rem] border border-border bg-card p-6 shadow-card outline-none transition hover:-translate-y-1 hover:shadow-elevated focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/10 text-primary">
                   <Bus className="h-5 w-5" aria-hidden />

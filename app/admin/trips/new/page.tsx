@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/admin/field";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/server";
 import { tripSchema } from "@/lib/validation/routes";
@@ -181,22 +181,7 @@ export default async function NewTripPage() {
       </form>
     </div>
   );
-}
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
-    </div>
-  );
-}
-function Select({
+}function Select({
   name,
   options,
 }: {

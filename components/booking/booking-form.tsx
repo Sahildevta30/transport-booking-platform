@@ -253,7 +253,7 @@ export function BookingForm({
             aria-selected={mode === "SEAT_BOOKING"}
             disabled={busy}
             onClick={() => switchMode("SEAT_BOOKING")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 ${
               mode === "SEAT_BOOKING"
                 ? "bg-background text-foreground shadow-card"
                 : "text-muted-foreground hover:text-foreground"
@@ -267,7 +267,7 @@ export function BookingForm({
             aria-selected={mode === "FULL_VEHICLE_BOOKING"}
             disabled={busy}
             onClick={() => switchMode("FULL_VEHICLE_BOOKING")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 ${
               mode === "FULL_VEHICLE_BOOKING"
                 ? "bg-background text-foreground shadow-card"
                 : "text-muted-foreground hover:text-foreground"
@@ -320,7 +320,7 @@ export function BookingForm({
                   aria-pressed={isSelected}
                   aria-label={`Seat ${s.seat_number}${unavailable ? ", unavailable" : isSelected ? ", selected" : ", available"}`}
                   title={unavailable ? "Unavailable" : undefined}
-                  className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-t-xl rounded-b-md border-2 text-xs font-bold transition-all disabled:cursor-not-allowed ${
+                  className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-t-xl rounded-b-md border-2 text-xs font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed ${
                     unavailable
                       ? "border-transparent bg-muted-foreground/20 text-muted-foreground/60 line-through"
                       : isSelected

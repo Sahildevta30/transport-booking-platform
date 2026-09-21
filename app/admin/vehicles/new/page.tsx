@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/admin/field";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Add vehicle" };
@@ -180,21 +180,6 @@ export default async function NewVehiclePage() {
           </Button>
         </div>
       </form>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
     </div>
   );
 }
