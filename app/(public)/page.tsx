@@ -82,7 +82,7 @@ export default async function HomePage({
 
   const typeCounts = new Map<
     string,
-    { name: string; bookingMode: string; count: number }
+    { id: string; name: string; bookingMode: string; count: number }
   >();
   for (const row of activeVehicles ?? []) {
     const type = row.vehicle_types as unknown as
@@ -91,7 +91,13 @@ export default async function HomePage({
     if (!type) continue;
     const existing = typeCounts.get(type.id);
     if (existing) existing.count += 1;
-    else typeCounts.set(type.id, { name: type.name, bookingMode: type.booking_mode, count: 1 });
+    else
+      typeCounts.set(type.id, {
+        id: type.id,
+        name: type.name,
+        bookingMode: type.booking_mode,
+        count: 1,
+      });
   }
   const vehicleTypes = Array.from(typeCounts.values()).sort((a, b) => b.count - a.count);
 
@@ -172,7 +178,7 @@ export default async function HomePage({
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {vehicleTypes.slice(0, 8).map((type) => (
               <Link
-                key={type.name + type.bookingMode}
+                key={type.id}
                 href={`/search?type=${encodeURIComponent(type.name)}`}
                 className="group rounded-[1.5rem] border border-border bg-card p-6 shadow-card outline-none transition hover:-translate-y-1 hover:shadow-elevated focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >

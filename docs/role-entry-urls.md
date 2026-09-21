@@ -5,8 +5,22 @@ type a hidden dashboard route.
 
 ## The URLs
 
-Replace `<PRODUCTION_DOMAIN>` with the verified Vercel **Production** domain
-(not a preview alias) before handing this to the project owner.
+Verified production domain (Vercel project `transport-booking-platform`,
+confirmed via the Vercel API against the current deployment's git commit SHA):
+
+```
+https://transport-booking-platform.vercel.app
+```
+
+**This domain is currently not publicly reachable.** The Vercel project has
+`ssoProtection` enabled with `deploymentType: all_except_custom_domains` — since
+this is a `.vercel.app` domain, not a custom domain, every request (including
+anonymous ones from real customers) is currently redirected to a Vercel login
+wall instead of reaching the app. This must be turned off in the Vercel
+project's Deployment Protection settings, or a custom domain (which is exempt)
+must be added, before any real customer, partner, or the checklist below can
+actually be run against it. This is a project setting, not a code issue — the
+build and deployment themselves are healthy.
 
 | Purpose | Path |
 | --- | --- |
@@ -91,7 +105,9 @@ There is no signup on `/super-admin/login` and no code path that writes
 
 ## Pre-handoff verification
 
-Run against the real Production domain, not a preview:
+Run against the real Production domain **once deployment protection is
+disabled or a custom domain is added** — none of these could be executed this
+session, since the domain currently refuses anonymous requests:
 
 - [ ] `/login` → customer credentials → lands on `/customer/dashboard`
 - [ ] `/partner/login` → partner credentials → lands on `/admin/dashboard`
