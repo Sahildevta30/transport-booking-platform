@@ -87,6 +87,55 @@ drop policy if exists "organizations_admin_insert" on public.organizations;
 drop policy if exists "organizations_admin_update" on public.organizations;
 drop policy if exists "organizations_select_members" on public.organizations;
 
+
+-- Legacy production also contains permissive ADMIN policies on marketplace
+-- operational tables. PostgreSQL combines permissive policies with OR, so
+-- leaving even one of them in place would bypass the new tenant-scoped rules.
+-- Remove only policies whose own expressions explicitly depend on the legacy
+-- private.current_account_type() ADMIN gate; customer-owned policies are left intact.
+do $
+declare p record;
+begin
+  for p in
+    select schemaname, tablename, policyname
+    from pg_policies
+    where schemaname='public'
+      and tablename in ('organizations','vehicles','routes','trips','bookings','payments')
+      and (
+        coalesce(qual,'') ilike '%private.current_account_type%'
+        or coalesce(with_check,'') ilike '%private.current_account_type%'
+      )
+      and (
+        coalesce(qual,'') ilike '%ADMIN%'
+        or coalesce(with_check,'') ilike '%ADMIN%'
+      )
+  loop
+    execute format('drop policy if exists %I on %I.%I',p.policyname,p.schemaname,p.tablename);
+  end loop;
+end $;
+
+-- Prevent authenticated clients from promoting their own profile by writing
+-- account_type directly. SECURITY DEFINER administration/onboarding functions
+-- execute as their owner and remain able to perform the controlled transition.
+create or replace function public.protect_profile_account_type()
+returns trigger
+language plpgsql
+set search_path=public,pg_temp
+as $
+begin
+  if new.account_type is distinct from old.account_type
+     and current_user = 'authenticated' then
+    raise exception 'account_type cannot be changed directly';
+  end if;
+  return new;
+end
+$;
+
+drop trigger if exists protect_profile_account_type on public.profiles;
+create trigger protect_profile_account_type
+before update of account_type on public.profiles
+for each row execute function public.protect_profile_account_type();
+
 drop policy if exists "members can read own organizations" on public.organizations;
 create policy "members can read own organizations"
 on public.organizations for select to authenticated
