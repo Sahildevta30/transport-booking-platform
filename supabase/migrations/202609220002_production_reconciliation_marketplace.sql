@@ -93,7 +93,7 @@ drop policy if exists "organizations_select_members" on public.organizations;
 -- leaving even one of them in place would bypass the new tenant-scoped rules.
 -- Remove only policies whose own expressions explicitly depend on the legacy
 -- private.current_account_type() ADMIN gate; customer-owned policies are left intact.
-do $
+do $reconcile$
 declare p record;
 begin
   for p in
@@ -112,7 +112,7 @@ begin
   loop
     execute format('drop policy if exists %I on %I.%I',p.policyname,p.schemaname,p.tablename);
   end loop;
-end $;
+end $reconcile$;
 
 -- Prevent authenticated clients from promoting their own profile by writing
 -- account_type directly. SECURITY DEFINER administration/onboarding functions
@@ -121,7 +121,7 @@ create or replace function public.protect_profile_account_type()
 returns trigger
 language plpgsql
 set search_path=public,pg_temp
-as $
+as $protect$
 begin
   if new.account_type is distinct from old.account_type
      and current_user = 'authenticated' then
@@ -129,7 +129,7 @@ begin
   end if;
   return new;
 end
-$;
+$protect$;
 
 drop trigger if exists protect_profile_account_type on public.profiles;
 create trigger protect_profile_account_type
