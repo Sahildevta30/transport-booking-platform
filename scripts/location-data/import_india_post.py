@@ -12,7 +12,7 @@ from pathlib import Path
 ALIASES = {
     "officename": ("officename", "office name", "post office", "postofficename"),
     "pincode": ("pincode", "pin code", "pin", "postal code"),
-    "district": ("district", "districtname", "district name"),
+    "division": ("division", "postal division", "postaldivision"),
     "state": ("statename", "state name", "state"),
 }
 STATES = {"chhattisgarh": "CG", "chattisgarh": "CG", "odisha": "OD", "orissa": "OD"}
@@ -38,23 +38,23 @@ def main(path):
             if not state:
                 continue
             name = (record[fields["officename"]] or "").strip()
-            district = (record[fields["district"]] or "").strip()
+            division = (record[fields["division"]] or "").strip()
             pin = (record[fields["pincode"]] or "").strip()
-            if not name or not district or not re.fullmatch(r"\d{6}", pin):
+            if not name or not division or not re.fullmatch(r"\d{6}", pin):
                 invalid += 1
                 continue
-            rows.add((state, district, name, pin))
+            rows.add((state, division, name, pin))
     if invalid:
-        raise ValueError(f"{invalid} CG/OD records missing valid office, district or PIN; source needs review")
+        raise ValueError(f"{invalid} CG/OD records missing valid office, division or PIN; source needs review")
     if not rows:
         raise ValueError("No valid Chhattisgarh/Odisha records in file")
-    print("-- Verify source date and state/district spelling before running.")
+    print("-- Verify source date and state/postal-division spelling before running.")
     print("begin;")
     ordered = sorted(rows)
     for offset in range(0, len(ordered), 500):
-        values = [f"({sql(state)},{sql(district)},{sql(name)},{sql(pin)},'INDIA_POST')"
-                  for state, district, name, pin in ordered[offset:offset + 500]]
-        print("insert into public.geo_post_offices (state_code,district,office_name,pincode,source) values\n"
+        values = [f"({sql(state)},{sql(division)},{sql(name)},{sql(pin)},'INDIA_POST')"
+                  for state, division, name, pin in ordered[offset:offset + 500]]
+        print("insert into public.geo_post_offices (state_code,postal_division,office_name,pincode,source) values\n"
               + ",\n".join(values) + " on conflict do nothing;")
     print("commit;")
     print(f"-- Records: {len(rows)} (CG/OD only)", file=sys.stderr)
