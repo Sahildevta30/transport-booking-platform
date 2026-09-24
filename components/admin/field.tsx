@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useId, type ReactElement } from "react";
+import { Children, cloneElement, isValidElement, useId, type ReactNode } from "react";
 
 import { Label } from "@/components/ui/label";
 
@@ -19,12 +19,15 @@ export function Field({
   children,
 }: {
   label: string;
-  children: ReactElement<{ id?: string }>;
+  children: ReactNode;
 }) {
   const generatedId = useId();
-  const existingId = isValidElement(children) ? children.props.id : undefined;
+  const items = Children.toArray(children);
+  const control = items[0];
+  const existingId = isValidElement<{ id?: string }>(control) ? control.props.id : undefined;
   const id = existingId ?? generatedId;
-  const field = isValidElement(children) ? cloneElement(children, { id }) : children;
+  const field = items.map((item, index) => index === 0 && isValidElement<{ id?: string }>(item)
+    ? cloneElement(item, { id }) : item);
 
   return (
     <div className="space-y-2">
