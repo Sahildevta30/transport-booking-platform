@@ -14,7 +14,7 @@ type Props = { searchParams: Promise<{ error?: string; added?: string }> };
 export default async function LocationsPage({ searchParams }: Props) {
   const supabase = await createClient();
   const [{ data: locations, error }, { data: { user } }] = await Promise.all([
-    supabase.from("locations").select("id,name,city,state").order("name"),
+    supabase.from("locations").select("id,name,city,state,pincode").order("name"),
     supabase.auth.getUser(),
   ]);
   const { data: membership } = user
@@ -39,22 +39,30 @@ export default async function LocationsPage({ searchParams }: Props) {
     const name = String(formData.get("name") ?? "").trim();
     const city = String(formData.get("city") ?? "").trim();
     const state = String(formData.get("state") ?? "").trim();
-    if (name.length < 2 || name.length > 120 || city.length > 120 || state.length > 120)
+    const pincode = String(formData.get("pincode") ?? "").trim();
+    if (name.length < 2 || name.length > 120 || !city || city.length > 120 || !["Chhattisgarh", "Odisha"].includes(state) || !/^\d{6}$/.test(pincode))
       redirect("/admin/locations?error=invalid");
-    const { data: existing, error: lookupError } = await client.from("locations").select("id,name,city,state");
+    const stateCode = state === "Chhattisgarh" ? "CG" : "OD";
+    const { data: postalMatch, error: postalError } = await client.from("geo_post_offices")
+      .select("pincode").eq("state_code", stateCode).eq("pincode", pincode).limit(1);
+    if (postalError) redirect("/admin/locations?error=postal-unavailable");
+    if (!postalMatch?.length) redirect("/admin/locations?error=pin");
+    const { data: existing, error: lookupError } = await client.from("locations").select("id,name,city,state,pincode");
     if (lookupError) redirect("/admin/locations?error=save");
     if (existing?.some((location) =>
-      [location.name, location.city ?? "", location.state ?? ""].map((value) => value.trim().toLocaleLowerCase()).join("|") ===
-      [name, city, state].map((value) => value.toLocaleLowerCase()).join("|")))
+      [location.name, location.city ?? "", location.state ?? "", location.pincode ?? ""].map((value) => value.trim().toLocaleLowerCase()).join("|") ===
+      [name, city, state, pincode].map((value) => value.toLocaleLowerCase()).join("|")))
       redirect("/admin/locations?error=duplicate");
-    const { error: insertError } = await client.from("locations").insert({ name, city: city || null, state: state || null });
+    const { error: insertError } = await client.from("locations").insert({ name, city, state, pincode });
     if (insertError) redirect("/admin/locations?error=save");
     redirect("/admin/locations?added=1");
   }
 
   const message = params.error === "duplicate" ? "This location already exists. Choose it when creating a route." :
     params.error === "forbidden" ? "Only an authorized partner owner or admin can add locations." :
-    params.error === "invalid" ? "Enter a location name of 2–120 characters." :
+    params.error === "invalid" ? "Enter a name, city, state, and six-digit PIN." :
+    params.error === "pin" ? "This PIN is not in the selected state's imported postal catalog. Check the state and PIN." :
+    params.error === "postal-unavailable" ? "Postal validation is temporarily unavailable. Please try again later." :
     params.error ? "Location could not be saved. Please try again." : null;
 
   return <div className="mx-auto max-w-5xl space-y-6">
@@ -68,10 +76,10 @@ export default async function LocationsPage({ searchParams }: Props) {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
       <section className="overflow-hidden rounded-2xl border bg-card shadow-card"><h2 className="border-b px-5 py-4 font-semibold">Available locations ({locations?.length ?? 0})</h2>
         {!error && !locations?.length ? <div className="p-8 text-center"><MapPin className="mx-auto h-8 w-8 text-muted-foreground"/><p className="mt-3 font-medium">No locations yet</p><p className="mt-1 text-sm text-muted-foreground">Add actual stops or cities to begin setting up routes.</p></div> :
-          <ul className="divide-y">{locations?.map((location) => <li key={location.id} className="px-5 py-3"><p className="font-medium">{location.name}</p><p className="text-sm text-muted-foreground">{[location.city, location.state].filter(Boolean).join(", ") || "City and state not specified"}</p></li>)}</ul>}
+          <ul className="divide-y">{locations?.map((location) => <li key={location.id} className="px-5 py-3"><p className="font-medium">{location.name}</p><p className="text-sm text-muted-foreground">{[location.city, location.state, location.pincode].filter(Boolean).join(", ") || "City and state not specified"}</p></li>)}</ul>}
       </section>
       <section className="h-fit rounded-2xl border bg-card p-5 shadow-card"><h2 className="font-semibold">Add location</h2><p className="mt-1 text-sm text-muted-foreground">Use the place name passengers will recognize.</p>
-        {canCreate ? <form action={createLocation} className="mt-5 space-y-4"><Field label="Location name"><Input name="name" minLength={2} maxLength={120} required placeholder="e.g. Central Bus Stand" /></Field><Field label="City"><Input name="city" maxLength={120} placeholder="e.g. Bhubaneswar" /></Field><Field label="State"><Input name="state" maxLength={120} placeholder="e.g. Odisha" /></Field><Button type="submit" className="w-full">Add location</Button></form> : <p className="mt-5 text-sm text-muted-foreground">An authorized partner owner or admin account is required to add locations.</p>}
+        {canCreate ? <form action={createLocation} className="mt-5 space-y-4"><Field label="Location name"><Input name="name" minLength={2} maxLength={120} required placeholder="e.g. Central Bus Stand" /></Field><Field label="City"><Input name="city" maxLength={120} required placeholder="e.g. Bhubaneswar" /></Field><label className="block text-sm font-medium">State<select name="state" required defaultValue="" className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="" disabled>Select state</option><option value="Chhattisgarh">Chhattisgarh</option><option value="Odisha">Odisha</option></select></label><Field label="PIN code"><Input name="pincode" inputMode="numeric" pattern="[0-9]{6}" minLength={6} maxLength={6} required placeholder="e.g. 751001" /></Field><p className="text-xs text-muted-foreground">Enter a real passenger pickup or drop-off point. The PIN verifies postal coverage; it does not verify that the stop is safe or served by your route.</p><Button type="submit" className="w-full">Add location</Button></form> : <p className="mt-5 text-sm text-muted-foreground">An authorized partner owner or admin account is required to add locations.</p>}
       </section>
     </div>
   </div>;
