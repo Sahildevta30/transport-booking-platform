@@ -77,8 +77,9 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
       .in("role", ["OWNER", "ADMIN"])
       .maybeSingle();
     if (!membership) redirect("/admin/trips/new?error=forbidden");
-    const departure = new Date(v.departureTime).toISOString();
-    const arrival = new Date(v.arrivalTime).toISOString();
+    // datetime-local has no zone; operators schedule in India Standard Time.
+    const departure = new Date(`${v.departureTime}+05:30`).toISOString();
+    const arrival = new Date(`${v.arrivalTime}+05:30`).toISOString();
     const { data: existing, error: conflictLookupError } = await client
       .from("trips")
       .select("id,departure_at,arrival_at,status")
@@ -153,10 +154,10 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
           />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Departure">
+          <Field label="Departure (IST)">
             <Input name="departure_time" type="datetime-local" required />
           </Field>
-          <Field label="Arrival">
+          <Field label="Arrival (IST)">
             <Input name="arrival_time" type="datetime-local" required />
           </Field>
         </div>
