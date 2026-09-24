@@ -17,7 +17,7 @@ export default async function NewTripPage() {
   const { data: memberships } = user
     ? await supabase
         .from("organization_memberships")
-        .select("organization_id")
+        .select("organization_id,status")
         .eq("user_id", user.id)
     : { data: [] };
   const orgIds = (memberships ?? []).map((m) => m.organization_id);
@@ -63,7 +63,7 @@ export default async function NewTripPage() {
       .select("organization_id")
       .eq("id", v.routeId)
       .maybeSingle();
-    if (!vehicle || !route || vehicle.organization_id !== route.organization_id)
+    if (!vehicle || vehicle.status !== "active" || !route || vehicle.organization_id !== route.organization_id)
       redirect("/admin/trips/new?error=forbidden");
     const { data: membership } = await client
       .from("organization_memberships")
