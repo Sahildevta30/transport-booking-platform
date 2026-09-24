@@ -60,7 +60,7 @@ export default async function LocationsPage({ searchParams }: Props) {
   return <div className="mx-auto max-w-5xl space-y-6">
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div><p className="text-sm font-medium text-primary">Route setup · Step 1</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Locations</h1><p className="mt-2 text-sm text-muted-foreground">Add real pickup and drop-off points before creating a route. Locations are shared across partners.</p></div>
-      <Button asChild variant="outline"><Link href="/admin/routes">View routes</Link></Button>
+      <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link href="/admin/locations/coverage">District & PIN coverage</Link></Button><Button asChild variant="outline"><Link href="/admin/routes">View routes</Link></Button></div>
     </div>
     {message && <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{message}</p>}
     {params.added && <p role="status" className="rounded-lg border border-success/30 p-4 text-sm text-success">Location added. You can now use it in a route.</p>}
