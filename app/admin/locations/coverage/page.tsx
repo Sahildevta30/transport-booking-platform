@@ -17,7 +17,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
     .from("geo_districts").select("name,state_code").eq("state_code", state).order("name");
   const { data: offices, error: officeError } = validPin
     ? await supabase.from("geo_post_offices")
-        .select("district,office_name,pincode").eq("state_code", state).eq("pincode", pin)
+        .select("district,postal_division,office_name,pincode").eq("state_code", state).eq("pincode", pin)
         .order("office_name").limit(100)
     : { data: [], error: null };
   const stateName = state === "CG" ? "Chhattisgarh" : "Odisha";
@@ -48,7 +48,7 @@ export default async function CoveragePage({ searchParams }: { searchParams: Pro
     {validPin ? <section className="rounded-2xl border bg-card p-5 shadow-card">
       <h2 className="text-lg font-semibold">Post offices for {pin}</h2>
       {officeError ? <p role="alert" className="mt-3 text-sm text-destructive">Postal catalog is not available yet.</p> : offices?.length ?
-        <ul className="mt-4 divide-y">{offices.map(o => <li className="py-3 text-sm" key={`${o.district}-${o.office_name}`}><span className="font-medium">{o.office_name}</span><span className="text-muted-foreground"> · {o.district}</span></li>)}</ul> :
+        <ul className="mt-4 divide-y">{offices.map(o => <li className="py-3 text-sm" key={`${o.postal_division}-${o.office_name}`}><span className="font-medium">{o.office_name}</span><span className="text-muted-foreground"> · {o.district ? `${o.district} district` : `${o.postal_division} (postal division)`}</span></li>)}</ul> :
         <p className="mt-3 text-sm text-muted-foreground">No post office found for this PIN in {stateName}. The official postal import may still be pending.</p>}
       <p className="mt-4 text-xs text-muted-foreground">A post office or PIN is not automatically a passenger pickup point.</p>
     </section> : null}
