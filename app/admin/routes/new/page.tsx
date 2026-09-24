@@ -11,8 +11,25 @@ export const metadata: Metadata = { title: "Add route" };
 
 export default async function NewRoutePage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: memberships } = user
+    ? await supabase
+        .from("organization_memberships")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .in("role", ["OWNER", "ADMIN"])
+    : { data: [] };
+  const organizationIds = (memberships ?? []).map((m) => m.organization_id);
   const [{ data: organizations }, { data: locations }] = await Promise.all([
-    supabase.from("organizations").select("id,name").order("name"),
+    organizationIds.length
+      ? supabase
+          .from("organizations")
+          .select("id,name")
+          .in("id", organizationIds)
+          .order("name")
+      : Promise.resolve({ data: [] }),
     supabase.from("locations").select("id,name,city").order("name"),
   ]);
 
@@ -30,6 +47,20 @@ export default async function NewRoutePage() {
     if (!parsed.success) redirect("/admin/routes/new?error=invalid");
     const client = await createClient();
     const v = parsed.data;
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+    if (!user) redirect("/login?next=/admin/routes/new");
+    const { data: membership } = await client
+      .from("organization_memberships")
+      .select("role")
+      .eq("organization_id", v.organizationId)
+      .eq("user_id", user.id)
+      .in("role", ["OWNER", "ADMIN"])
+      .maybeSingle();
+    if (!membership) redirect("/admin/routes/new?error=forbidden");
+    if (v.originLocationId === v.destinationLocationId)
+      redirect("/admin/routes/new?error=invalid");
     const { error } = await client
       .from("routes")
       .insert({
