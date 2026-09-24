@@ -111,7 +111,9 @@ export default async function BookingPage({ searchParams }: Props) {
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-white/85">
             <span>
-              {new Date(trip.departure_at).toLocaleString(undefined, {
+              {new Date(trip.departure_at).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                timeZoneName: "short",
                 weekday: "short",
                 day: "numeric",
                 month: "short",
