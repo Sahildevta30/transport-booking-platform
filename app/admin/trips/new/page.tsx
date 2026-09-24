@@ -20,6 +20,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
         .from("organization_memberships")
         .select("organization_id")
         .eq("user_id", user.id)
+        .in("role", ["OWNER", "ADMIN"])
     : { data: [] };
   const orgIds = (memberships ?? []).map((m) => m.organization_id);
   const [{ data: routes }, { data: vehicles }, { data: organizations }] = orgIds.length
@@ -58,7 +59,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
     if (!user) redirect("/login?next=/admin/trips/new");
     const { data: vehicle } = await client
       .from("vehicles")
-      .select("organization_id")
+      .select("organization_id,status")
       .eq("id", v.vehicleId)
       .maybeSingle();
     const { data: route } = await client
@@ -66,7 +67,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
       .select("organization_id")
       .eq("id", v.routeId)
       .maybeSingle();
-    if (!vehicle || !route || vehicle.organization_id !== route.organization_id)
+    if (!vehicle || vehicle.status !== "active" || !route || vehicle.organization_id !== route.organization_id)
       redirect("/admin/trips/new?error=forbidden");
     const { data: membership } = await client
       .from("organization_memberships")
@@ -78,11 +79,12 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
     if (!membership) redirect("/admin/trips/new?error=forbidden");
     const departure = new Date(v.departureTime).toISOString();
     const arrival = new Date(v.arrivalTime).toISOString();
-    const { data: existing } = await client
+    const { data: existing, error: conflictLookupError } = await client
       .from("trips")
       .select("id,departure_at,arrival_at,status")
       .eq("vehicle_id", v.vehicleId)
       .neq("status", "cancelled");
+    if (conflictLookupError) redirect("/admin/trips/new?error=save");
     const proposedStart = new Date(departure).getTime();
     const proposedEnd = new Date(arrival).getTime();
     const conflict = (existing ?? []).some((t) => {
