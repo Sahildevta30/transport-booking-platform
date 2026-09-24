@@ -50,9 +50,12 @@ def main(path):
         raise ValueError("No valid Chhattisgarh/Odisha records in file")
     print("-- Verify source date and state/district spelling before running.")
     print("begin;")
-    for state, district, name, pin in sorted(rows):
-        print("insert into public.geo_post_offices (state_code,district,office_name,pincode,source) "
-              f"values ({sql(state)},{sql(district)},{sql(name)},{sql(pin)},'INDIA_POST') on conflict do nothing;")
+    ordered = sorted(rows)
+    for offset in range(0, len(ordered), 500):
+        values = [f"({sql(state)},{sql(district)},{sql(name)},{sql(pin)},'INDIA_POST')"
+                  for state, district, name, pin in ordered[offset:offset + 500]]
+        print("insert into public.geo_post_offices (state_code,district,office_name,pincode,source) values\n"
+              + ",\n".join(values) + " on conflict do nothing;")
     print("commit;")
     print(f"-- Records: {len(rows)} (CG/OD only)", file=sys.stderr)
 
