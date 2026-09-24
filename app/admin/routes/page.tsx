@@ -40,6 +40,7 @@ export default async function RoutesPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Create the first transport route to begin scheduling trips.
           </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-3"><Button asChild variant="outline"><Link href="/admin/locations">Manage locations</Link></Button><Button asChild><Link href="/admin/routes/new">Add route</Link></Button></div>
         </div>
       ) : null}
       {routes?.length ? (
