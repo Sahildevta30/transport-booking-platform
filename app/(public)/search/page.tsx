@@ -126,8 +126,9 @@ export default async function SearchPage({ searchParams }: Props) {
         .eq("status", "scheduled")
         .gte("departure_at", new Date().toISOString())
         .order("departure_at");
-      if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        const start = `${date}T00:00:00.000Z`;
+      if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(`${date}T00:00:00+05:30`))) {
+        // A selected calendar day refers to local service time in India.
+        const start = new Date(`${date}T00:00:00+05:30`).toISOString();
         const next = new Date(start);
         next.setUTCDate(next.getUTCDate() + 1);
         query = query.gte("departure_at", start).lt("departure_at", next.toISOString());

@@ -14,11 +14,11 @@ export const routeSchema = z.object({
 export const tripSchema = z.object({
   routeId: z.string().uuid(),
   vehicleId: z.string().uuid(),
-  departureTime: z.string().min(1),
-  arrivalTime: z.string().min(1),
+  departureTime: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/).refine((value) => !Number.isNaN(Date.parse(`${value}+05:30`))),
+  arrivalTime: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/).refine((value) => !Number.isNaN(Date.parse(`${value}+05:30`))),
   basePrice: z.coerce.number().nonnegative().max(10000000),
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled"]),
-}).refine((value) => new Date(value.arrivalTime).getTime() > new Date(value.departureTime).getTime(), {
+}).refine((value) => new Date(`${value.arrivalTime}+05:30`).getTime() > new Date(`${value.departureTime}+05:30`).getTime(), {
   message: "Arrival must be after departure",
   path: ["arrivalTime"],
 });

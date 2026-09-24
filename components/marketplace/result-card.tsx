@@ -63,7 +63,9 @@ export function ResultCard({
 
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span>
-              {new Date(trip.departureAt).toLocaleString(undefined, {
+              {new Date(trip.departureAt).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                timeZoneName: "short",
                 weekday: "short",
                 day: "numeric",
                 month: "short",
