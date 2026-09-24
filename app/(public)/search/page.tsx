@@ -21,7 +21,11 @@ type Props = {
   }>;
 };
 
-type Location = { id: string; name: string; city: string | null };
+type Location = { id: string; name: string; city: string | null; state: string | null; pincode: string | null };
+
+function locationLabel(location: Location) {
+  return [location.name, location.city, location.state, location.pincode].filter(Boolean).join(", ");
+}
 
 function normalize(value: string) {
   return value.trim().toLocaleLowerCase().replace(/\s+/g, " ");
@@ -29,26 +33,24 @@ function normalize(value: string) {
 
 function matchLocation(locations: Location[], query: string) {
   const q = normalize(query);
-  if (!q) return { location: undefined, ambiguous: false };
+  if (!q) return { location: undefined, matches: [] as Location[] };
+  const full = locations.filter((l) => normalize(locationLabel(l)) === q);
+  if (full.length === 1) return { location: full[0], matches: full };
   const exact = locations.filter(
     (l) =>
       normalize(l.name) === q ||
       normalize(l.city ?? "") === q ||
       normalize(`${l.name} ${l.city ?? ""}`) === q,
   );
-  if (exact.length === 1) return { location: exact[0], ambiguous: false };
-  if (exact.length > 1) return { location: undefined, ambiguous: true };
-  const fuzzy = locations.filter((l) => normalize(`${l.name} ${l.city ?? ""}`).includes(q));
-  return fuzzy.length === 1
-    ? { location: fuzzy[0], ambiguous: false }
-    : { location: undefined, ambiguous: fuzzy.length > 1 };
+  if (exact.length === 1) return { location: exact[0], matches: exact };
+  if (exact.length > 1) return { location: undefined, matches: exact };
+  const fuzzy = locations.filter((l) => normalize(locationLabel(l)).includes(q));
+  return { location: fuzzy.length === 1 ? fuzzy[0] : undefined, matches: fuzzy };
 }
 
 function displayName(location: Location | undefined) {
   if (!location) return "";
-  return location.city && location.city !== location.name
-    ? `${location.name}, ${location.city}`
-    : location.name;
+  return locationLabel(location);
 }
 
 /** A GET-link filter chip — no JavaScript required, preserves every other
@@ -91,7 +93,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   const supabase = await createClient();
 
-  const { data: locationsData } = await supabase.from("locations").select("id,name,city").order("name");
+  const { data: locationsData } = await supabase.from("locations").select("id,name,city,state,pincode").order("name");
   const allLocations = (locationsData ?? []) as Location[];
   const originMatch = matchLocation(allLocations, from);
   const destinationMatch = matchLocation(allLocations, to);
@@ -175,7 +177,7 @@ export default async function SearchPage({ searchParams }: Props) {
   else if (sort === "price_desc") filtered = [...filtered].sort((a, b) => b.base_price - a.base_price);
 
   const unmatched = Boolean(from) && Boolean(to) && (!origin || !destination);
-  const ambiguous = originMatch.ambiguous || destinationMatch.ambiguous;
+  const ambiguous = originMatch.matches.length > 1 || destinationMatch.matches.length > 1;
   const sameLocation = Boolean(origin) && Boolean(destination) && origin!.id === destination!.id;
   const hasBaseRoute = Boolean(origin) && Boolean(destination) && !sameLocation;
   const filtersActive = Boolean(typeFilter) || Boolean(modeFilter);
@@ -260,8 +262,10 @@ export default async function SearchPage({ searchParams }: Props) {
       {unmatched ? (
         <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
           {ambiguous
-            ? "That location matches multiple places. Enter the full location or city name so we do not guess your route."
+            ? "Multiple stops match your search. Select the exact stop below."
             : "We could not match one of those locations. Try a city or location available in the network."}
+          {([ ["From", originMatch.matches, "from"], ["To", destinationMatch.matches, "to"] ] as const).map(([label, matches, field]) =>
+            matches.length > 1 ? <div key={field} className="mt-4"><p className="font-semibold text-foreground">{label} — choose a stop</p><ul className="mt-2 flex flex-wrap gap-2">{matches.slice(0, 20).map((location) => <li key={location.id}><Link className="inline-flex rounded-full border px-3 py-1.5 text-foreground hover:border-primary" href={linkWith({ [field]: locationLabel(location) })}>{locationLabel(location)}</Link></li>)}</ul>{matches.length > 20 ? <p className="mt-2 text-xs">Showing 20 matches. Enter more of the stop name or PIN to narrow the list.</p> : null}</div> : null)}
         </div>
       ) : null}
 
