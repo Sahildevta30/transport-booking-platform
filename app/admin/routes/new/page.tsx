@@ -31,7 +31,7 @@ export default async function NewRoutePage({ searchParams }: { searchParams: Pro
           .in("id", organizationIds)
           .order("name")
       : Promise.resolve({ data: [] }),
-    supabase.from("locations").select("id,name,city").order("name"),
+    supabase.from("locations").select("id,name,city,state,pincode").order("name"),
   ]);
 
   async function createRoute(formData: FormData) {
@@ -62,6 +62,15 @@ export default async function NewRoutePage({ searchParams }: { searchParams: Pro
     if (!membership) redirect("/admin/routes/new?error=forbidden");
     if (v.originLocationId === v.destinationLocationId)
       redirect("/admin/routes/new?error=invalid");
+    const { data: existing, error: lookupError } = await client
+      .from("routes")
+      .select("id")
+      .eq("organization_id", v.organizationId)
+      .eq("origin_location_id", v.originLocationId)
+      .eq("destination_location_id", v.destinationLocationId)
+      .limit(1);
+    if (lookupError) redirect("/admin/routes/new?error=save");
+    if (existing?.length) redirect("/admin/routes/new?error=duplicate");
     const { error } = await client
       .from("routes")
       .insert({
@@ -99,7 +108,7 @@ export default async function NewRoutePage({ searchParams }: { searchParams: Pro
           {locations && locations.length < 2 ? <>Add at least two real locations first. <Link className="font-medium text-primary underline" href="/admin/locations">Manage locations</Link></> : "An active partner organization and two locations are required before creating a route."}
         </div>
       ) : null}
-      {formError && <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{formError === "invalid" ? "Choose two different locations and check the route details." : formError === "forbidden" ? "You are not allowed to create routes for this organization." : "Route could not be saved. Please try again."}</p>}
+      {formError && <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{formError === "duplicate" ? "This organization already has a route with these origin and destination stops." : formError === "invalid" ? "Choose two different locations and check the route details." : formError === "forbidden" ? "You are not allowed to create routes for this organization." : "Route could not be saved. Please try again."}</p>}
       <form
         action={createRoute}
         className="space-y-5 rounded-2xl border bg-card p-6 shadow-card"
@@ -135,8 +144,7 @@ export default async function NewRoutePage({ searchParams }: { searchParams: Pro
             <option value="">Select origin</option>
             {locations?.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.name}
-                {l.city ? ` — ${l.city}` : ""}
+                {[l.name, l.city, l.state, l.pincode].filter(Boolean).join(" · ")}
               </option>
             ))}
           </select>
@@ -150,8 +158,7 @@ export default async function NewRoutePage({ searchParams }: { searchParams: Pro
             <option value="">Select destination</option>
             {locations?.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.name}
-                {l.city ? ` — ${l.city}` : ""}
+                {[l.name, l.city, l.state, l.pincode].filter(Boolean).join(" · ")}
               </option>
             ))}
           </select>
