@@ -22,7 +22,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
         .eq("user_id", user.id)
     : { data: [] };
   const orgIds = (memberships ?? []).map((m) => m.organization_id);
-  const [{ data: routes }, { data: vehicles }] = orgIds.length
+  const [{ data: routes }, { data: vehicles }, { data: organizations }] = orgIds.length
     ? await Promise.all([
         supabase
           .from("routes")
@@ -35,8 +35,10 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
           .in("organization_id", orgIds)
           .eq("status", "active")
           .order("label"),
+        supabase.from("organizations").select("id,name").in("id", orgIds),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const organizationNames = new Map((organizations ?? []).map((org) => [org.id, org.name]));
   async function createTrip(formData: FormData) {
     "use server";
     const parsed = tripSchema.safeParse({
@@ -134,7 +136,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
         <Field label="Route">
           <Select
             name="route_id"
-            options={routes?.map((x) => [x.id, x.name]) ?? []}
+            options={routes?.map((x) => [x.id, `${x.name} · ${organizationNames.get(x.organization_id) ?? "Organization"}`]) ?? []}
           />
         </Field>
         <Field label="Vehicle">
@@ -143,7 +145,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
             options={
               vehicles?.map((x) => [
                 x.id,
-                `${x.label} — ${x.registration_number}`,
+                `${x.label} — ${x.registration_number} · ${organizationNames.get(x.organization_id) ?? "Organization"}`,
               ]) ?? []
             }
           />
