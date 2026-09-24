@@ -95,6 +95,7 @@ export default async function VehiclesPage() {
                   <th className="px-5 py-3 font-medium">Registration</th>
                   <th className="px-5 py-3 font-medium">Capacity</th>
                   <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -116,6 +117,11 @@ export default async function VehiclesPage() {
                       >
                         {vehicle.status}
                       </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/admin/vehicles/${vehicle.id}/edit`}>Edit</Link>
+                      </Button>
                     </td>
                   </tr>
                 ))}
