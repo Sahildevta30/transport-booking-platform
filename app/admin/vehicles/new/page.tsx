@@ -55,6 +55,14 @@ export default async function NewVehiclePage() {
     const status = String(formData.get("status") ?? "active") as
       "active" | "maintenance" | "inactive";
     const seatCapacity = capacityValue ? Number(capacityValue) : null;
+    const { data: selectedVehicleType } = await client
+      .from("vehicle_types")
+      .select("name")
+      .eq("id", vehicleTypeId)
+      .maybeSingle();
+    const isTwoWheeler = ["Bike", "Scooty"].includes(
+      selectedVehicleType?.name ?? "",
+    );
 
     if (
       !organizationId ||
@@ -62,7 +70,8 @@ export default async function NewVehiclePage() {
       !registrationNumber ||
       !label ||
       (seatCapacity !== null &&
-        (!Number.isInteger(seatCapacity) || seatCapacity < 1))
+        (!Number.isInteger(seatCapacity) || seatCapacity < 1)) ||
+      (isTwoWheeler && seatCapacity !== 2)
     )
       redirect("/admin/vehicles/new?error=invalid");
 
@@ -159,6 +168,9 @@ export default async function NewVehiclePage() {
             inputMode="numeric"
             placeholder="Optional for full-vehicle bookings"
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Bike and Scooty capacity must be 2.
+          </p>
         </Field>
         <Field label="Status">
           <select
