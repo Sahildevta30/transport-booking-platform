@@ -9,7 +9,8 @@ import { tripSchema } from "@/lib/validation/routes";
 
 export const metadata: Metadata = { title: "Schedule trip" };
 
-export default async function NewTripPage() {
+export default async function NewTripPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error: formError } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -122,9 +123,10 @@ export default async function NewTripPage() {
       </div>
       {!ready ? (
         <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
-          A route and active vehicle are required before scheduling.
+          {!routes?.length ? <>Create a route first. <Link className="font-medium text-primary underline" href="/admin/routes/new">Add route</Link></> : <>Add an active vehicle before scheduling. <Link className="font-medium text-primary underline" href="/admin/vehicles/new">Add vehicle</Link></>}
         </div>
       ) : null}
+      {formError && <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{formError === "vehicle-conflict" ? "This vehicle already has a trip during those times. Choose another vehicle or time." : formError === "invalid" ? "Check the dates, price and required fields. Arrival must follow departure." : formError === "forbidden" ? "The route and active vehicle must belong to the same organization." : "Trip could not be saved. Please try again."}</p>}
       <form
         action={createTrip}
         className="space-y-5 rounded-2xl border bg-card p-6 shadow-card"
