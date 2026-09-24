@@ -82,11 +82,11 @@ export default async function TripsPage() {
                           : "—"}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {new Date(trip.departure_at).toLocaleString()}
+                        {new Date(trip.departure_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", timeZoneName: "short" })}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {trip.arrival_at
-                          ? new Date(trip.arrival_at).toLocaleString()
+                          ? new Date(trip.arrival_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", timeZoneName: "short" })
                           : "—"}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
