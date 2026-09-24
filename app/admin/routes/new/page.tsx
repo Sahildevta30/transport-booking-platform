@@ -9,7 +9,8 @@ import { routeSchema } from "@/lib/validation/routes";
 
 export const metadata: Metadata = { title: "Add route" };
 
-export default async function NewRoutePage() {
+export default async function NewRoutePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error: formError } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -95,10 +96,10 @@ export default async function NewRoutePage() {
       </div>
       {!ready ? (
         <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
-          At least one organization and two locations are required before
-          creating a route.
+          {locations && locations.length < 2 ? <>Add at least two real locations first. <Link className="font-medium text-primary underline" href="/admin/locations">Manage locations</Link></> : "An active partner organization and two locations are required before creating a route."}
         </div>
       ) : null}
+      {formError && <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{formError === "invalid" ? "Choose two different locations and check the route details." : formError === "forbidden" ? "You are not allowed to create routes for this organization." : "Route could not be saved. Please try again."}</p>}
       <form
         action={createRoute}
         className="space-y-5 rounded-2xl border bg-card p-6 shadow-card"

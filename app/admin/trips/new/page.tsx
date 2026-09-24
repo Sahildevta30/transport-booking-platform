@@ -9,7 +9,8 @@ import { tripSchema } from "@/lib/validation/routes";
 
 export const metadata: Metadata = { title: "Schedule trip" };
 
-export default async function NewTripPage() {
+export default async function NewTripPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error: formError } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,7 +22,7 @@ export default async function NewTripPage() {
         .eq("user_id", user.id)
     : { data: [] };
   const orgIds = (memberships ?? []).map((m) => m.organization_id);
-  const [{ data: routes }, { data: vehicles }] = orgIds.length
+  const [{ data: routes }, { data: vehicles }, { data: organizations }] = orgIds.length
     ? await Promise.all([
         supabase
           .from("routes")
@@ -34,8 +35,10 @@ export default async function NewTripPage() {
           .in("organization_id", orgIds)
           .eq("status", "active")
           .order("label"),
+        supabase.from("organizations").select("id,name").in("id", orgIds),
       ])
-    : [{ data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const organizationNames = new Map((organizations ?? []).map((org) => [org.id, org.name]));
   async function createTrip(formData: FormData) {
     "use server";
     const parsed = tripSchema.safeParse({
@@ -122,9 +125,10 @@ export default async function NewTripPage() {
       </div>
       {!ready ? (
         <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
-          A route and active vehicle are required before scheduling.
+          {!routes?.length ? <>Create a route first. <Link className="font-medium text-primary underline" href="/admin/routes/new">Add route</Link></> : <>Add an active vehicle before scheduling. <Link className="font-medium text-primary underline" href="/admin/vehicles/new">Add vehicle</Link></>}
         </div>
       ) : null}
+      {formError && <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{formError === "vehicle-conflict" ? "This vehicle already has a trip during those times. Choose another vehicle or time." : formError === "invalid" ? "Check the dates, price and required fields. Arrival must follow departure." : formError === "forbidden" ? "The route and active vehicle must belong to the same organization." : "Trip could not be saved. Please try again."}</p>}
       <form
         action={createTrip}
         className="space-y-5 rounded-2xl border bg-card p-6 shadow-card"
@@ -132,7 +136,7 @@ export default async function NewTripPage() {
         <Field label="Route">
           <Select
             name="route_id"
-            options={routes?.map((x) => [x.id, x.name]) ?? []}
+            options={routes?.map((x) => [x.id, `${x.name} · ${organizationNames.get(x.organization_id) ?? "Organization"}`]) ?? []}
           />
         </Field>
         <Field label="Vehicle">
@@ -141,7 +145,7 @@ export default async function NewTripPage() {
             options={
               vehicles?.map((x) => [
                 x.id,
-                `${x.label} — ${x.registration_number}`,
+                `${x.label} — ${x.registration_number} · ${organizationNames.get(x.organization_id) ?? "Organization"}`,
               ]) ?? []
             }
           />

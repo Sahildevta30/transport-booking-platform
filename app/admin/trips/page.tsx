@@ -51,6 +51,7 @@ export default async function TripsPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Schedule a vehicle against a route to start operations.
           </p>
+          <Button asChild variant="outline" className="mt-4"><Link href="/admin/routes">Set up routes</Link></Button>
         </div>
       ) : null}
       {trips?.length ? (
