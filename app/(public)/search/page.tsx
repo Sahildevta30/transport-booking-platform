@@ -110,14 +110,16 @@ export default async function SearchPage({ searchParams }: Props) {
     base_price: number;
   };
   let allResults: RawTrip[] = [];
+  const routeOrganizations = new Map<string, string>();
 
   if (origin && destination && origin.id !== destination.id) {
     const { data: routes } = await supabase
       .from("routes")
-      .select("id")
+      .select("id,organization_id")
       .eq("origin_location_id", origin.id)
       .eq("destination_location_id", destination.id);
     const routeIds = (routes ?? []).map((r) => r.id);
+    for (const route of routes ?? []) routeOrganizations.set(route.id, route.organization_id);
     if (routeIds.length) {
       let query = supabase
         .from("trips")
@@ -156,6 +158,11 @@ export default async function SearchPage({ searchParams }: Props) {
   const vehicleMap = new Map(
     ((vehiclesData ?? []) as unknown as RawVehicle[]).map((v) => [v.id, v]),
   );
+  const operatorIds = [...new Set(allResults.map((trip) => routeOrganizations.get(trip.route_id)).filter((id): id is string => Boolean(id)))];
+  const { data: operators } = operatorIds.length
+    ? await supabase.from("organizations").select("id,name").in("id", operatorIds)
+    : { data: [] };
+  const operatorNames = new Map((operators ?? []).map((operator) => [operator.id, operator.name]));
 
   // Real filters only: vehicle type is matched against the actual
   // free-text vehicle_types.name a partner entered (no invented
@@ -316,6 +323,7 @@ export default async function SearchPage({ searchParams }: Props) {
               <ResultCard
                 key={trip.id}
                 trip={result}
+                operatorName={operatorNames.get(routeOrganizations.get(trip.route_id) ?? "") ?? null}
                 origin={displayName(origin)}
                 destination={displayName(destination)}
                 passengers={passengers}
