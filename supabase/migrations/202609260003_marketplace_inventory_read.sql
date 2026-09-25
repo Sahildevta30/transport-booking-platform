@@ -39,6 +39,19 @@ drop policy if exists trips_customer_booking_read on public.trips;
 create policy trips_customer_booking_read on public.trips
   for select to authenticated using (public.has_own_booking_on_trip(id));
 
+-- Publish a company's name only when it currently operates an active,
+-- scheduled service. Unlaunched tenant names stay private.
+drop policy if exists organizations_published_marketplace_read on public.organizations;
+create policy organizations_published_marketplace_read on public.organizations
+  for select to anon,authenticated using (exists (
+    select 1 from public.routes r
+    join public.trips t on t.route_id=r.id
+    join public.vehicles v on v.id=t.vehicle_id
+    where r.organization_id=organizations.id
+      and v.organization_id=organizations.id
+      and v.status='active' and t.status='scheduled' and t.departure_at>now()
+  ));
+
 -- Only a booking's own fleet can view passenger contact details. This lets
 -- the operator call the customer to reconfirm without sharing the lead with
 -- other companies; the customer's own read policy remains in place.
