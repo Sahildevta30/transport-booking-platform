@@ -23,23 +23,27 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
     const bookingId = String(formData.get("booking_id") ?? "");
     const decision = String(formData.get("decision") ?? "");
     const reason = String(formData.get("reason") ?? "").trim();
-    if (!/^[0-9a-f-]{36}$/i.test(bookingId) || !["CONFIRM", "REJECT"].includes(decision))
+    if (!/^[0-9a-f-]{36}$/i.test(bookingId) || !["CONFIRM", "REJECT", "COMPLETE"].includes(decision))
+      redirect("/admin/bookings?error=invalid");
+    if (decision === "CONFIRM" && formData.get("ack") !== "reconfirmed")
       redirect("/admin/bookings?error=invalid");
     if (decision === "REJECT" && (formData.get("ack") !== "yes" || reason.length < 2 || reason.length > 500))
       redirect("/admin/bookings?error=invalid");
     const client = await createClient();
     const { data: { user: actor } } = await client.auth.getUser();
     if (!actor) redirect("/partner/login?next=/admin/bookings");
-    const { error } = await client.rpc("partner_decide_booking", {
-      p_booking_id: bookingId,
-      p_decision: decision,
-      p_reason: decision === "REJECT" ? reason : null,
-    });
+    const { error } = decision === "COMPLETE"
+      ? await client.rpc("partner_complete_booking", { p_booking_id: bookingId })
+      : await client.rpc("partner_decide_booking", {
+          p_booking_id: bookingId,
+          p_decision: decision,
+          p_reason: decision === "REJECT" ? reason : null,
+        });
     if (error) {
       const code = error.message.includes("payment") || error.message.includes("Payment") ? "payment" : "failed";
       redirect(`/admin/bookings?error=${code}`);
     }
-    redirect(`/admin/bookings?result=${decision === "CONFIRM" ? "confirmed" : "rejected"}`);
+    redirect(`/admin/bookings?result=${decision === "CONFIRM" ? "confirmed" : decision === "COMPLETE" ? "completed" : "rejected"}`);
   }
   const supabase = await createClient();
   const {
@@ -62,7 +66,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
   const { data: trips } = vehicleIds.length
     ? await supabase
         .from("trips")
-        .select("id,vehicle_id,departure_at")
+        .select("id,vehicle_id,departure_at,arrival_at,status")
         .in("vehicle_id", vehicleIds)
     : { data: [] };
   const tripIds = (trips ?? []).map((t) => t.id);
@@ -75,6 +79,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
         .in("trip_id", tripIds)
         .order("created_at", { ascending: false })
     : { data: [], error: null };
+  const bookingIds = (bookings ?? []).map((b) => b.id);
+  const { data: passengerContacts } = bookingIds.length
+    ? await supabase.from("booking_passengers").select("booking_id,full_name,phone").in("booking_id", bookingIds)
+    : { data: [] };
+  const contactMap = new Map<string, { full_name: string; phone: string }[]>();
+  for (const contact of passengerContacts ?? []) {
+    const list = contactMap.get(contact.booking_id) ?? [];
+    list.push(contact);
+    contactMap.set(contact.booking_id, list);
+  }
   const tripMap = new Map((trips ?? []).map((t) => [t.id, t]));
   const vehicleMap = new Map((vehicles ?? []).map((v) => [v.id, v.label]));
   return (
@@ -85,9 +99,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
         <p className="mt-2 text-muted-foreground">
           Customer bookings for your organization only.
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">Confirm pending requests or reject unpaid requests before departure. A booking with an active or completed payment needs payment/refund review before rejection.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Call the listed passenger to reconfirm trip details, then confirm the request. Only your company can see its passenger contacts. After the trip finishes, close it as completed. Unpaid requests can be rejected before departure.</p>
       </div>
-      {params.result ? <p role="status" className="rounded-lg border border-success/30 p-4 text-sm text-success">Booking {params.result === "confirmed" ? "confirmed" : "rejected"}.</p> : null}
+      {params.result ? <p role="status" className="rounded-lg border border-success/30 p-4 text-sm text-success">Booking {params.result === "confirmed" ? "confirmed" : params.result === "completed" ? "completed" : "rejected"}.</p> : null}
       {params.error ? <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{params.error === "payment" ? "Payment is active or completed. Review its payment/refund before changing this booking." : params.error === "invalid" ? "Enter a rejection reason and confirm the action." : "Booking could not be changed. It may have already changed or departed. Refresh and try again."}</p> : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <Metric
@@ -132,6 +146,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
                     "Passengers",
                     "Amount",
                     "Status",
+                    "Passenger contact",
                     "Decision",
                   ].map((x) => (
                     <th key={x} className="px-5 py-3">
@@ -168,11 +183,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
                           {b.status.replaceAll("_", " ")}
                         </span>
                       </td>
+                      <td className="px-5 py-4 text-xs">{contactMap.get(b.id)?.map((p, i) => <p key={`${p.phone}-${i}`} className="whitespace-nowrap">{p.full_name} · <a href={`tel:${p.phone}`} className="text-primary underline">{p.phone}</a></p>) ?? <span className="text-muted-foreground">Contact unavailable</span>}</td>
                       <td className="px-5 py-4">
                         {b.status === "PENDING" && t && new Date(t.departure_at) > new Date() ? <div className="flex min-w-44 flex-col gap-2">
-                          <form action={decideBooking}><input type="hidden" name="booking_id" value={b.id}/><input type="hidden" name="decision" value="CONFIRM"/><Button type="submit" size="sm">Confirm</Button></form>
+                          <form action={decideBooking} className="space-y-2"><input type="hidden" name="booking_id" value={b.id}/><input type="hidden" name="decision" value="CONFIRM"/><label className="flex items-start gap-2 text-xs"><input type="checkbox" name="ack" value="reconfirmed" required/>I spoke with the customer and reconfirmed this trip.</label><Button type="submit" size="sm">Confirm booking</Button></form>
                           <details className="text-xs"><summary className="cursor-pointer text-destructive">Reject request…</summary><form action={decideBooking} className="mt-2 space-y-2"><input type="hidden" name="booking_id" value={b.id}/><input type="hidden" name="decision" value="REJECT"/><label className="block">Reason<input name="reason" required minLength={2} maxLength={500} className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-foreground"/></label><label className="flex items-start gap-2"><input type="checkbox" name="ack" value="yes" required/>I confirm this unpaid booking should be rejected.</label><Button type="submit" size="sm" variant="destructive">Reject booking</Button></form></details>
-                        </div> : <span className="text-muted-foreground">—</span>}
+                        </div> : b.status === "CONFIRMED" && t?.arrival_at && new Date(t.arrival_at) <= new Date() && t.status !== "cancelled" ? <form action={decideBooking}><input type="hidden" name="booking_id" value={b.id}/><input type="hidden" name="decision" value="COMPLETE"/><Button type="submit" size="sm" variant="outline">Close completed trip</Button></form> : <span className="text-muted-foreground">—</span>}
                       </td>
                     </tr>
                   );
