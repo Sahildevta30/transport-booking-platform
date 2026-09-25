@@ -37,11 +37,13 @@ function formatDuration(departureAt: string, arrivalAt: string | null): string |
  */
 export function ResultCard({
   trip,
+  operatorName,
   origin,
   destination,
   passengers,
 }: {
   trip: TripResult;
+  operatorName: string | null;
   origin: string;
   destination: string;
   passengers: number;
@@ -82,6 +84,7 @@ export function ResultCard({
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            {operatorName ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">Operated by {operatorName}</span> : null}
             {trip.vehicleLabel ? (
               <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
                 {trip.vehicleLabel}
