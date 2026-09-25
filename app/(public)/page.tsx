@@ -27,8 +27,8 @@ const WHY_TRANSITBOOK = [
   },
   {
     icon: ShieldCheck,
-    title: "Verified payments, not promises",
-    body: "Every payment is confirmed against the provider's own record before a booking is marked confirmed — never on trust alone.",
+    title: "Bookings reviewed by operators",
+    body: "Your request goes to the transport operator. You can track its status from your bookings page.",
   },
   {
     icon: Ticket,
