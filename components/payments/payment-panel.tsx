@@ -142,7 +142,7 @@ export function PaymentPanel({
         Payable amount: ₹{Number(amount).toFixed(2)}
       </p>
       <p className="mt-4 text-sm text-muted-foreground">
-        Secure test payment powered by Razorpay. A verified checkout response is
+        Secure payment powered by Razorpay. A verified checkout response is
         not treated as final settlement until the provider confirms it.
       </p>
       {message ? (
