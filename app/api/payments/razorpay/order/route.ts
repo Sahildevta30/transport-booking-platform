@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RazorpayProvider } from "@/lib/payments/razorpay";
+import { razorpayCheckoutEnabled } from "@/lib/payments/availability";
 
 export async function POST(request: Request) {
+  if (!razorpayCheckoutEnabled()) return NextResponse.json({ error: "Online payment is not enabled" }, { status: 503 });
   try {
     const { bookingId } = (await request.json()) as { bookingId?: string };
     if (!bookingId) return NextResponse.json({ error: "Booking is required" }, { status: 400 });
