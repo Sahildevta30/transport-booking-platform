@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Ticket, UsersRound, IndianRupee } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Partner bookings" };
 // Same status vocabulary and colors as the customer-facing My Bookings
@@ -14,7 +16,31 @@ const STATUS_STYLE: Record<string, string> = {
   REFUNDED: "bg-muted-foreground/10 text-muted-foreground",
 };
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ result?: string; error?: string }> }) {
+  const params = await searchParams;
+  async function decideBooking(formData: FormData) {
+    "use server";
+    const bookingId = String(formData.get("booking_id") ?? "");
+    const decision = String(formData.get("decision") ?? "");
+    const reason = String(formData.get("reason") ?? "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(bookingId) || !["CONFIRM", "REJECT"].includes(decision))
+      redirect("/admin/bookings?error=invalid");
+    if (decision === "REJECT" && (formData.get("ack") !== "yes" || reason.length < 2 || reason.length > 500))
+      redirect("/admin/bookings?error=invalid");
+    const client = await createClient();
+    const { data: { user: actor } } = await client.auth.getUser();
+    if (!actor) redirect("/partner/login?next=/admin/bookings");
+    const { error } = await client.rpc("partner_decide_booking", {
+      p_booking_id: bookingId,
+      p_decision: decision,
+      p_reason: decision === "REJECT" ? reason : null,
+    });
+    if (error) {
+      const code = error.message.includes("payment") || error.message.includes("Payment") ? "payment" : "failed";
+      redirect(`/admin/bookings?error=${code}`);
+    }
+    redirect(`/admin/bookings?result=${decision === "CONFIRM" ? "confirmed" : "rejected"}`);
+  }
   const supabase = await createClient();
   const {
     data: { user },
@@ -59,7 +85,10 @@ export default async function Page() {
         <p className="mt-2 text-muted-foreground">
           Customer bookings for your organization only.
         </p>
+        <p className="mt-1 text-sm text-muted-foreground">Confirm pending requests or reject unpaid requests before departure. A booking with an active or completed payment needs payment/refund review before rejection.</p>
       </div>
+      {params.result ? <p role="status" className="rounded-lg border border-success/30 p-4 text-sm text-success">Booking {params.result === "confirmed" ? "confirmed" : "rejected"}.</p> : null}
+      {params.error ? <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{params.error === "payment" ? "Payment is active or completed. Review its payment/refund before changing this booking." : params.error === "invalid" ? "Enter a rejection reason and confirm the action." : "Booking could not be changed. It may have already changed or departed. Refresh and try again."}</p> : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <Metric
           icon={Ticket}
@@ -103,6 +132,7 @@ export default async function Page() {
                     "Passengers",
                     "Amount",
                     "Status",
+                    "Decision",
                   ].map((x) => (
                     <th key={x} className="px-5 py-3">
                       {x}
@@ -122,7 +152,7 @@ export default async function Page() {
                         {t ? (vehicleMap.get(t.vehicle_id) ?? "—") : "—"}
                       </td>
                       <td className="px-5 py-4">
-                        {t ? new Date(t.departure_at).toLocaleString() : "—"}
+                        {t ? new Date(t.departure_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", timeZoneName: "short" }) : "—"}
                       </td>
                       <td className="px-5 py-4">
                         {b.booking_mode.replaceAll("_", " ")}
@@ -137,6 +167,12 @@ export default async function Page() {
                         >
                           {b.status.replaceAll("_", " ")}
                         </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        {b.status === "PENDING" && t && new Date(t.departure_at) > new Date() ? <div className="flex min-w-44 flex-col gap-2">
+                          <form action={decideBooking}><input type="hidden" name="booking_id" value={b.id}/><input type="hidden" name="decision" value="CONFIRM"/><Button type="submit" size="sm">Confirm</Button></form>
+                          <details className="text-xs"><summary className="cursor-pointer text-destructive">Reject request…</summary><form action={decideBooking} className="mt-2 space-y-2"><input type="hidden" name="booking_id" value={b.id}/><input type="hidden" name="decision" value="REJECT"/><label className="block">Reason<input name="reason" required minLength={2} maxLength={500} className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-foreground"/></label><label className="flex items-start gap-2"><input type="checkbox" name="ack" value="yes" required/>I confirm this unpaid booking should be rejected.</label><Button type="submit" size="sm" variant="destructive">Reject booking</Button></form></details>
+                        </div> : <span className="text-muted-foreground">—</span>}
                       </td>
                     </tr>
                   );
