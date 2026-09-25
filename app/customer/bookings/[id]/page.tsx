@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PaymentPanel } from "@/components/payments/payment-panel";
 import { CancelBookingPanel } from "@/components/bookings/cancel-booking-panel";
 import { createClient } from "@/lib/supabase/server";
+import { razorpayCheckoutEnabled } from "@/lib/payments/availability";
 
 /**
  * Plain helper, not a component: this Server Component renders once per
@@ -129,7 +130,9 @@ export default async function BookingDetail({ params }: Props) {
           </h1>
           {trip ? (
             <p className="mt-2 text-sm text-white/85">
-              {new Date(trip.departure_at).toLocaleString(undefined, {
+              {new Date(trip.departure_at).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                timeZoneName: "short",
                 weekday: "short",
                 day: "numeric",
                 month: "short",
@@ -198,9 +201,10 @@ export default async function BookingDetail({ params }: Props) {
           ) : null}
         </section>
       ) : null}
-      {b.status === "PENDING" && latestPayment?.status !== "SUCCESS" ? (
+      {b.status === "PENDING" && latestPayment?.status !== "SUCCESS" && razorpayCheckoutEnabled() ? (
         <PaymentPanel bookingId={b.id} amount={Number(b.amount)} />
       ) : null}
+      {b.status === "PENDING" && latestPayment?.status !== "SUCCESS" && !razorpayCheckoutEnabled() ? <p className="rounded-2xl border bg-card p-5 text-sm text-muted-foreground" role="status">Your request is pending partner confirmation. Online payment is not enabled; no payment has been collected through this booking.</p> : null}
       {canCancel ? <CancelBookingPanel bookingId={b.id} /> : null}
       <div>
         <h2 className="text-2xl font-black">Passengers</h2>
