@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Activity, Bus, CalendarClock, IndianRupee } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Partner dashboard" };
 export default async function Page() {
@@ -14,6 +15,12 @@ export default async function Page() {
         .eq("user_id", user.id)
     : { data: [] };
   const orgIds = (memberships ?? []).map((x) => x.organization_id);
+  const [{ count: locationCount }, { count: routeCount }] = await Promise.all([
+    supabase.from("locations").select("id", { count: "exact", head: true }),
+    orgIds.length
+      ? supabase.from("routes").select("id", { count: "exact", head: true }).in("organization_id", orgIds)
+      : Promise.resolve({ count: 0 }),
+  ]);
   const { data: vehicles } = orgIds.length
     ? await supabase
         .from("vehicles")
@@ -37,6 +44,12 @@ export default async function Page() {
   const revenue = (bookings ?? [])
     .filter((b) => b.status === "CONFIRMED" || b.status === "COMPLETED")
     .reduce((n, b) => n + Number(b.amount), 0);
+  const setupSteps = [
+    { label: "Add real pickup and drop-off locations", href: "/admin/locations", done: (locationCount ?? 0) >= 2 },
+    { label: "Add a route for your company", href: "/admin/routes/new", done: (routeCount ?? 0) > 0 },
+    { label: "Register an active vehicle", href: "/admin/vehicles/new", done: (vehicles ?? []).some((v) => v.status === "active") },
+    { label: "Publish a future trip with its fare", href: "/admin/trips/new", done: (trips ?? []).some((t) => t.status === "scheduled") },
+  ];
   return (
     <div className="space-y-8">
       <section className="rounded-3xl border bg-gradient-to-br from-card to-muted/50 p-7 shadow-sm">
@@ -47,6 +60,19 @@ export default async function Page() {
         <p className="mt-2 max-w-2xl text-muted-foreground">
           Only data belonging to your organization is shown here.
         </p>
+      </section>
+      <section className="rounded-2xl border bg-card p-6 shadow-sm">
+        <h2 className="font-semibold">Get ready for customer bookings</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Complete these steps with your actual service details. Only scheduled future trips appear in customer search.</p>
+        <ol className="mt-5 grid gap-3 sm:grid-cols-2">
+          {setupSteps.map((step, index) => (
+            <li key={step.href} className="rounded-xl border p-4">
+              <span className="text-xs font-medium text-muted-foreground">Step {index + 1} · {step.done ? "Ready" : "Pending"}</span>
+              <Link href={step.href} className="mt-1 block font-medium text-primary hover:underline">{step.label} →</Link>
+            </li>
+          ))}
+        </ol>
+        <Link href="/admin/bookings" className="mt-5 inline-block text-sm font-medium text-primary hover:underline">Review and reconfirm bookings →</Link>
       </section>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Metric
