@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
@@ -8,12 +8,142 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
-const TERMS_VERSION="2026-09-18";
-export default function PartnerApplyPage(){
- const router=useRouter(); const [name,setName]=useState(""); const [accepted,setAccepted]=useState(false); const [busy,setBusy]=useState(false); const [error,setError]=useState<string|null>(null);
- async function activate(){setError(null);if(name.trim().length<2||!accepted){setError("Enter your business name and accept the partner terms.");return}setBusy(true);const supabase=createClient();const {data:{user}}=await supabase.auth.getUser();if(!user){router.push("/login?next=/partner/apply");return}const {error}=await supabase.rpc("activate_partner",{p_organization_name:name.trim(),p_terms_version:TERMS_VERSION});if(error){setError("Partner account could not be activated. You may already have a partner organization.");setBusy(false);return}router.push("/admin/dashboard");router.refresh()}
- return <main className="min-h-[80vh] bg-gradient-to-b from-background via-background to-muted/40 px-4 py-12"><div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
- <section className="space-y-7"><div className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm shadow-sm"><Sparkles className="h-4 w-4 text-primary"/>Grow with our transport marketplace</div><div><h1 className="max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Put your fleet in front of customers ready to travel.</h1><p className="mt-4 max-w-xl text-lg text-muted-foreground">Create your partner workspace, list vehicles, build routes, schedule trips and manage bookings from one polished operations hub.</p></div><div className="grid gap-3 sm:grid-cols-3">{[["Fleet control","Manage your own vehicles"],["Booking operations","See your customer demand"],["Clear ownership","Your company data stays scoped"]].map(([a,b])=><div key={a} className="rounded-2xl border bg-card/70 p-4 shadow-sm"><CheckCircle2 className="mb-3 h-5 w-5 text-primary"/><p className="font-medium">{a}</p><p className="mt-1 text-xs text-muted-foreground">{b}</p></div>)}</div></section>
- <section className="rounded-3xl border bg-card p-6 shadow-xl shadow-black/5 sm:p-8"><div className="mb-6 flex items-center gap-3"><div className="rounded-2xl bg-primary/10 p-3"><Building2 className="h-6 w-6 text-primary"/></div><div><h2 className="text-xl font-semibold">Become a partner</h2><p className="text-sm text-muted-foreground">Create your organization workspace.</p></div></div><div className="space-y-5"><div className="space-y-2"><Label htmlFor="organization">Business / company name</Label><Input id="organization" value={name} onChange={e=>setName(e.target.value)} maxLength={160} placeholder="e.g. Sunrise Travels"/></div><div className="flex gap-3 rounded-2xl border bg-muted/30 p-4"><input id="partner-terms" type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)} className="mt-1 h-4 w-4"/><div className="text-sm"><label htmlFor="partner-terms" className="font-medium cursor-pointer">I accept the Partner Terms & Conditions</label><Link href="/partner/terms" target="_blank" className="ml-1 text-primary underline underline-offset-2">Read terms</Link><span className="mt-1 block text-muted-foreground">I confirm I am authorized to list and operate vehicles for this business and will keep fleet, pricing and trip information accurate.</span></div></div><div className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0"/>Your partner workspace is isolated from other transport businesses. Platform supervision remains read-only.</div>{error?<p role="alert" className="text-sm text-destructive">{error}</p>:null}<Button className="h-11 w-full" disabled={busy} onClick={activate}>{busy?"Activating partner workspace…":"Activate partner workspace"}</Button></div></section>
- </div></main>
+const TERMS_VERSION = "2026-09-18";
+
+type Category = { id: string; slug: string; name: string };
+
+export default function PartnerApplyPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categorySlug, setCategorySlug] = useState<string | null>(null);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("categories")
+      .select("id,slug,name")
+      .eq("is_active", true)
+      .order("display_order")
+      .then(({ data, error: loadError }) => {
+        setCategories(data ?? []);
+        if (loadError) setError("Business categories could not be loaded. Please retry later.");
+        if (data?.length === 1) setCategorySlug(data[0]?.slug ?? null);
+        setLoadingCategories(false);
+      });
+  }, []);
+
+  async function activate() {
+    setError(null);
+    if (name.trim().length < 2 || !accepted) {
+      setError("Enter your business name and accept the partner terms.");
+      return;
+    }
+    if (!categorySlug) {
+      setError("Select which kind of business you run.");
+      return;
+    }
+    setBusy(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login?next=/partner/apply");
+      return;
+    }
+    const { error } = await supabase.rpc("activate_partner", {
+      p_organization_name: name.trim(),
+      p_terms_version: TERMS_VERSION,
+      p_category_slug: categorySlug,
+    });
+    if (error) {
+      setError("Partner account could not be activated. You may already have a partner organization.");
+      setBusy(false);
+      return;
+    }
+    router.push("/admin/dashboard");
+    router.refresh();
+  }
+
+  return (
+    <main className="min-h-[80vh] bg-gradient-to-b from-background via-background to-muted/40 px-4 py-12">
+      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+        <section className="space-y-7">
+          <div className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-sm shadow-sm">
+            <Sparkles className="h-4 w-4 text-primary" />Grow with our transport marketplace
+          </div>
+          <div>
+            <h1 className="max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Put your business in front of customers ready to travel.</h1>
+            <p className="mt-4 max-w-xl text-lg text-muted-foreground">Create your partner workspace, list your services and manage bookings from one polished operations hub — scoped only to your business.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[["Fleet control", "Manage your own vehicles"], ["Booking operations", "See your customer demand"], ["Clear ownership", "Your company data stays scoped"]].map(([a, b]) => (
+              <div key={a} className="rounded-2xl border bg-card/70 p-4 shadow-sm">
+                <CheckCircle2 className="mb-3 h-5 w-5 text-primary" />
+                <p className="font-medium">{a}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{b}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-3xl border bg-card p-6 shadow-xl shadow-black/5 sm:p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="rounded-2xl bg-primary/10 p-3"><Building2 className="h-6 w-6 text-primary" /></div>
+            <div>
+              <h2 className="text-xl font-semibold">Become a partner</h2>
+              <p className="text-sm text-muted-foreground">Create your organization workspace.</p>
+            </div>
+          </div>
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="organization">Business / company name</Label>
+              <Input id="organization" value={name} onChange={(e) => setName(e.target.value)} maxLength={160} placeholder="e.g. Sunrise Travels" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>What kind of business is this?</Label>
+              {loadingCategories ? (
+                <p className="text-sm text-muted-foreground">Loading categories…</p>
+              ) : categories.length === 0 ? (
+                <p role="alert" className="text-sm text-destructive">Business categories are unavailable right now.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {categories.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-pressed={categorySlug === c.slug}
+                      onClick={() => setCategorySlug(c.slug)}
+                      className={`rounded-2xl border p-3 text-left text-sm transition ${categorySlug === c.slug ? "border-primary bg-primary/10 font-medium" : "border-input bg-background hover:bg-muted/50"}`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 rounded-2xl border bg-muted/30 p-4">
+              <input id="partner-terms" type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1 h-4 w-4" />
+              <div className="text-sm">
+                <label htmlFor="partner-terms" className="font-medium cursor-pointer">I accept the Partner Terms & Conditions</label>
+                <Link href="/partner/terms" target="_blank" className="ml-1 text-primary underline underline-offset-2">Read terms</Link>
+                <span className="mt-1 block text-muted-foreground">I confirm I am authorized to list and operate services for this business and will keep fleet, pricing and trip information accurate.</span>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />Your partner workspace is isolated from other businesses, even within the same category. Platform supervision remains read-only.
+            </div>
+
+            {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+            <Button className="h-11 w-full" disabled={busy || loadingCategories || !categorySlug} onClick={activate}>{busy ? "Activating partner workspace…" : "Activate partner workspace"}</Button>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }
