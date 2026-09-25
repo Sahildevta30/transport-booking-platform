@@ -18,12 +18,12 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
   const { data: memberships } = user
     ? await supabase
         .from("organization_memberships")
-        .select("organization_id")
+        .select("organization_id,role")
         .eq("user_id", user.id)
         .in("role", ["OWNER", "ADMIN"])
     : { data: [] };
   const orgIds = (memberships ?? []).map((m) => m.organization_id);
-  const [{ data: routes }, { data: vehicles }, { data: organizations }] = orgIds.length
+  const [{ data: routes }, { data: vehicles }] = orgIds.length
     ? await Promise.all([
         supabase
           .from("routes")
@@ -36,9 +36,11 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
           .in("organization_id", orgIds)
           .eq("status", "active")
           .order("label"),
-        supabase.from("organizations").select("id,name").in("id", orgIds),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }];
+    : [{ data: [] }, { data: [] }];
+  const { data: organizations } = orgIds.length
+    ? await supabase.from("organizations").select("id,name").in("id", orgIds)
+    : { data: [] };
   const organizationNames = new Map((organizations ?? []).map((org) => [org.id, org.name]));
   async function createTrip(formData: FormData) {
     "use server";
@@ -48,7 +50,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
       departureTime: formData.get("departure_time"),
       arrivalTime: formData.get("arrival_time"),
       basePrice: formData.get("base_price"),
-      status: formData.get("status"),
+      status: "scheduled",
     });
     if (!parsed.success) redirect("/admin/trips/new?error=invalid");
     const client = await createClient();
@@ -56,7 +58,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
     const {
       data: { user },
     } = await client.auth.getUser();
-    if (!user) redirect("/login?next=/admin/trips/new");
+    if (!user) redirect("/partner/login?next=/admin/trips/new");
     const { data: vehicle } = await client
       .from("vehicles")
       .select("organization_id,status")
@@ -80,6 +82,8 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
     // datetime-local has no zone; operators schedule in India Standard Time.
     const departure = new Date(`${v.departureTime}+05:30`).toISOString();
     const arrival = new Date(`${v.arrivalTime}+05:30`).toISOString();
+    if (new Date(departure).getTime() <= Date.now())
+      redirect("/admin/trips/new?error=past-departure");
     const { data: existing, error: conflictLookupError } = await client
       .from("trips")
       .select("id,departure_at,arrival_at,status")
@@ -103,7 +107,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
         vehicle_id: v.vehicleId,
         departure_at: departure,
         arrival_at: arrival,
-        status: v.status,
+        status: "scheduled",
         base_price: v.basePrice,
       });
     if (error) redirect("/admin/trips/new?error=save");
@@ -128,10 +132,10 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
       </div>
       {!ready ? (
         <div className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
-          {!routes?.length ? <>Create a route first. <Link className="font-medium text-primary underline" href="/admin/routes/new">Add route</Link></> : <>Add an active vehicle before scheduling. <Link className="font-medium text-primary underline" href="/admin/vehicles/new">Add vehicle</Link></>}
+          A <Link href="/admin/routes/new" className="underline">route</Link> and an <Link href="/admin/vehicles/new" className="underline">active vehicle</Link> are required before scheduling.
         </div>
       ) : null}
-      {formError && <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{formError === "vehicle-conflict" ? "This vehicle already has a trip during those times. Choose another vehicle or time." : formError === "invalid" ? "Check the dates, price and required fields. Arrival must follow departure." : formError === "forbidden" ? "The route and active vehicle must belong to the same organization." : "Trip could not be saved. Please try again."}</p>}
+      {formError ? <p role="alert" className="rounded-lg border border-destructive/30 p-4 text-sm text-destructive">{formError === "vehicle-conflict" ? "This vehicle already has a trip in that time window." : formError === "past-departure" ? "Departure must be in the future (India Standard Time)." : formError === "forbidden" ? "Choose an active vehicle and route from the same organization you manage." : formError === "invalid" ? "Check the dates, price, route and vehicle." : "Trip could not be saved. Please try again."}</p> : null}
       <form
         action={createTrip}
         className="space-y-5 rounded-2xl border bg-card p-6 shadow-card"
@@ -164,19 +168,7 @@ export default async function NewTripPage({ searchParams }: { searchParams: Prom
         <Field label="Base price">
           <Input name="base_price" type="number" min="0" step="0.01" required />
         </Field>
-        <Field label="Initial status">
-          <select
-            name="status"
-            defaultValue="scheduled"
-            required
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-          >
-            <option value="scheduled">scheduled</option>
-            <option value="in_progress">in progress</option>
-            <option value="completed">completed</option>
-            <option value="cancelled">cancelled</option>
-          </select>
-        </Field>
+        <p className="text-sm text-muted-foreground">New trips start as scheduled and appear to customers after you save them.</p>
         <div className="flex justify-end gap-3">
           <Button asChild variant="outline">
             <Link href="/admin/trips">Cancel</Link>
